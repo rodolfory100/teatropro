@@ -1,0 +1,3973 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TeatroPro - Sistema Profissional de Vendas de Ingressos</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- jsPDF para geração de PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- QRCode.js para geração de QR Codes -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- Chart.js para gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        /* Estilos anteriores mantidos */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #818cf8;
+            --secondary: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --dark: #1f2937;
+            --light: #f8fafc;
+            --gray: #6b7280;
+            --success: #22c55e;
+            --card-bg: #ffffff;
+            --sidebar-bg: #1e293b;
+            --shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.15);
+            --radius: 12px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: var(--dark);
+            min-height: 100vh;
+            display: flex;
+        }
+
+        /* Estilos anteriores mantidos */
+        .sidebar {
+            width: 280px;
+            background: var(--sidebar-bg);
+            color: white;
+            padding: 0;
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo {
+            padding: 30px 25px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+        }
+
+        .logo h1 {
+            font-size: 1.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            color: white;
+            font-weight: 700;
+        }
+
+        .logo p {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            margin-top: 5px;
+        }
+
+        .nav-section {
+            padding: 25px 0;
+        }
+
+        .nav-section h3 {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: #94a3b8;
+            padding: 0 25px 15px 25px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .nav-btn {
+            width: 100%;
+            padding: 15px 25px;
+            background: transparent;
+            border: none;
+            color: #cbd5e1;
+            text-align: left;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            border-left: 3px solid transparent;
+            position: relative;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border-left-color: var(--primary);
+        }
+
+        .nav-btn.active {
+            background: rgba(99, 102, 241, 0.2);
+            color: white;
+            border-left-color: var(--primary);
+        }
+
+        .nav-btn.active::before {
+            content: '';
+            position: absolute;
+            right: 15px;
+            width: 6px;
+            height: 6px;
+            background: var(--primary);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .nav-btn i {
+            width: 20px;
+            text-align: center;
+        }
+
+        /* MAIN CONTENT */
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            padding: 30px;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* HEADER */
+        .dashboard-header {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 30px;
+            box-shadow: var(--shadow);
+            margin-bottom: 25px;
+            border: 1px solid rgba(99, 102, 241, 0.1);
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .header-top h2 {
+            color: var(--dark);
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+
+        .date-display {
+            color: var(--gray);
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .event-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .event-info-card {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 20px;
+            border-radius: var(--radius);
+            text-align: center;
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        .event-info-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .event-info-card .value {
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .event-info-card .label {
+            font-size: 0.8rem;
+            opacity: 0.9;
+        }
+
+        /* STATS GRID */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-top: 25px;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            text-align: center;
+            transition: var(--transition);
+            border: 1px solid #f1f5f9;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--primary-light));
+            transform: scaleX(0);
+            transition: var(--transition);
+        }
+
+        .stat-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .stat-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            font-size: 1.5rem;
+        }
+
+        .stat-card.sales .stat-icon { background: rgba(34, 197, 94, 0.1); color: var(--success); }
+        .stat-card.available .stat-icon { background: rgba(99, 102, 241, 0.1); color: var(--primary); }
+        .stat-card.occupied .stat-icon { background: rgba(245, 158, 11, 0.1); color: var(--warning); }
+        .stat-card.revenue .stat-icon { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
+
+        .stat-number {
+            font-size: 2.2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: var(--dark);
+        }
+
+        .stat-label {
+            color: var(--gray);
+            font-size: 0.9rem;
+        }
+
+        /* SEAT MAP CONTAINER */
+        .seat-map-container {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 30px;
+            box-shadow: var(--shadow);
+            margin-bottom: 25px;
+        }
+
+        .map-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .map-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        /* BOTÕES */
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: var(--transition);
+            font-size: 14px;
+            text-decoration: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-warning { background: var(--warning); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-secondary { background: var(--gray); color: white; }
+        .btn-info { background: #0ea5e9; color: white; }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 13px;
+        }
+
+        select.form-control,
+        input.form-control {
+            padding: 10px 15px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            background: white;
+            font-size: 14px;
+            min-width: 150px;
+            transition: var(--transition);
+        }
+
+        select.form-control:focus,
+        input.form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        /* SEAT MAP */
+        .stage {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+            text-align: center;
+            padding: 25px;
+            margin: 40px 0;
+            border-radius: var(--radius);
+            font-weight: bold;
+            font-size: 1.3rem;
+            box-shadow: var(--shadow);
+            position: relative;
+        }
+
+        .stage::before {
+            content: '🎭';
+            position: absolute;
+            left: 20px;
+            font-size: 2rem;
+        }
+
+        .stage::after {
+            content: '🎭';
+            position: absolute;
+            right: 20px;
+            font-size: 2rem;
+        }
+
+        .seat-map {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .row-label {
+            font-weight: bold;
+            color: var(--primary);
+            min-width: 40px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .seats {
+            display: flex;
+            gap: 6px;
+        }
+
+        .seat {
+            width: 35px;
+            height: 35px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.8rem;
+            transition: var(--transition);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        .seat.free { background: var(--success); color: white; }
+        .seat.reserved { background: var(--warning); color: white; }
+        .seat.sold { background: var(--danger); color: white; }
+        .seat.selected {
+            background: var(--primary);
+            transform: scale(1.2);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.5);
+            z-index: 10;
+        }
+
+        /* Modo de impressão - permite selecionar assentos vendidos */
+        .print-mode .seat.sold {
+            cursor: pointer;
+            opacity: 0.9;
+        }
+
+        .print-mode .seat.sold:hover {
+            transform: scale(1.1);
+            opacity: 1;
+        }
+
+        .seat:not(.sold):hover {
+            transform: scale(1.1);
+        }
+
+        /* LEGEND */
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+
+        /* INFO PANEL */
+        .info-panel {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 25px;
+            box-shadow: var(--shadow);
+        }
+
+        .info-section {
+            margin-bottom: 25px;
+        }
+
+        .info-section h3 {
+            color: var(--dark);
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px dashed #e5e7eb;
+        }
+
+        .info-item:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: var(--gray);
+            font-size: 0.9rem;
+        }
+
+        .info-value {
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        /* VENDAS SECTION */
+        .sales-form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .sales-form-grid label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--dark);
+            font-weight: 500;
+        }
+
+        .sales-form-grid input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .sales-form-grid input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .payment-methods {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .payment-method {
+            padding: 15px 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-weight: 500;
+            color: var(--gray);
+            text-align: center;
+        }
+
+        .payment-method:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .payment-method.selected {
+            border-color: var(--primary);
+            background: var(--primary);
+            color: white;
+            box-shadow: var(--shadow);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        /* NOTIFICATION */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+            z-index: 3000;
+            min-width: 300px;
+            max-width: 400px;
+            display: none;
+            animation: slideInRight 0.3s ease;
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .notification.show {
+            display: block;
+        }
+
+        .notification.success {
+            border-left: 4px solid var(--success);
+        }
+
+        .notification.error {
+            border-left: 4px solid var(--danger);
+        }
+
+        .notification.warning {
+            border-left: 4px solid var(--warning);
+        }
+
+        .notification.info {
+            border-left: 4px solid var(--primary);
+        }
+
+        .notification-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .notification-title {
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        .notification-close {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: var(--gray);
+        }
+
+        .notification-body {
+            color: var(--gray);
+            font-size: 0.9rem;
+        }
+
+        /* AI ASSISTANT */
+        .ai-assistant {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1500;
+        }
+
+        .ai-toggle {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            font-size: 1.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: var(--shadow-lg);
+            transition: var(--transition);
+        }
+
+        .ai-toggle:hover {
+            transform: scale(1.1);
+        }
+
+        .ai-panel {
+            position: absolute;
+            bottom: 80px;
+            right: 0;
+            width: 350px;
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+            display: none;
+            flex-direction: column;
+            max-height: 500px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .ai-header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 20px;
+            border-radius: var(--radius) var(--radius) 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ai-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            max-height: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            padding: 12px 16px;
+            border-radius: 18px;
+            max-width: 85%;
+            word-wrap: break-word;
+            animation: messageSlide 0.3s ease;
+        }
+
+        @keyframes messageSlide {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            background: var(--primary);
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 5px;
+        }
+
+        .message.assistant {
+            background: #f1f5f9;
+            color: var(--dark);
+            margin-right: auto;
+            border-bottom-left-radius: 5px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .ai-input {
+            display: flex;
+            padding: 20px;
+            border-top: 1px solid #e5e7eb;
+            gap: 10px;
+        }
+
+        .ai-input input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 1px solid #e5e7eb;
+            border-radius: 25px;
+            outline: none;
+            font-size: 14px;
+        }
+
+        .ai-input button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+        }
+
+        .ai-input button:hover {
+            transform: scale(1.1);
+        }
+
+        /* MODAIS */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            padding: 0;
+            border-radius: var(--radius);
+            width: 90%;
+            max-width: 900px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: modalSlide 0.3s ease;
+        }
+
+        @keyframes modalSlide {
+            from { transform: translateY(-30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 25px;
+            border-radius: var(--radius) var(--radius) 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        .close {
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            background: none;
+            border: none;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+        }
+
+        .close:hover {
+            transform: rotate(90deg);
+        }
+
+        /* EDITOR DE LAYOUT */
+        .editor-section {
+            margin-bottom: 30px;
+        }
+
+        .editor-section h3 {
+            color: var(--dark);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+        }
+
+        .editor-rows {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .editor-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .row-input {
+            padding: 8px 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .row-input.label {
+            width: 80px;
+        }
+
+        .row-input.seats {
+            width: 100px;
+        }
+
+        /* HISTÓRICO DE TRANSAÇÕES */
+        .transaction-list {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .transaction-item {
+            background: white;
+            padding: 20px;
+            border-radius: var(--radius);
+            margin-bottom: 15px;
+            border: 1px solid #e5e7eb;
+            transition: var(--transition);
+            position: relative;
+        }
+
+        .transaction-item:hover {
+            box-shadow: var(--shadow);
+            transform: translateX(5px);
+        }
+
+        .transaction-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .transaction-id {
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .transaction-status {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .transaction-status.sold {
+            background: rgba(34, 197, 94, 0.1);
+            color: var(--success);
+        }
+
+        .transaction-status.reserved {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+        }
+
+        .transaction-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            color: var(--gray);
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+        }
+
+        .transaction-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px dashed #e5e7eb;
+        }
+
+        /* CHARTS */
+        .chart-container {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 30px;
+            box-shadow: var(--shadow);
+            margin-bottom: 25px;
+        }
+
+        .chart-container h3 {
+            color: var(--dark);
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        /* ALERT BOX */
+        .alert-box {
+            padding: 15px 20px;
+            border-radius: var(--radius);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .alert-box.info {
+            background: rgba(99, 102, 241, 0.1);
+            border-left: 4px solid var(--primary);
+            color: var(--primary-dark);
+        }
+
+        .alert-box i {
+            font-size: 1.5rem;
+        }
+
+        /* RESPONSIVIDADE */
+        .menu-toggle {
+            display: none;
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 15px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            z-index: 1001;
+            box-shadow: var(--shadow);
+        }
+
+        @media (max-width: 1200px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+            
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+            
+            .menu-toggle {
+                display: block;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 20px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            
+            .event-info-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .ai-panel {
+                width: 300px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .main-content {
+                padding: 15px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .map-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+
+        /* ANIMAÇÕES */
+        .fade-in {
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* UTILITÁRIOS */
+        .hidden {
+            display: none;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .mb-20 {
+            margin-bottom: 20px;
+        }
+
+        .mt-20 {
+            margin-top: 20px;
+        }
+
+        /* Conteúdos das seções */
+        .content-section {
+            display: none;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        /* SEARCH BAR */
+        .search-bar {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .search-bar input {
+            width: 100%;
+            padding: 12px 45px 12px 15px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .search-bar input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .search-bar i {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray);
+        }
+
+        /* NOVOS ESTILOS PARA AS MELHORIAS */
+        .logo-preview {
+            max-width: 150px;
+            max-height: 80px;
+            margin: 10px 0;
+            border: 1px dashed #ccc;
+            padding: 5px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 80px;
+        }
+
+        .thermal-preview {
+            background: white;
+            border: 1px solid #ccc;
+            padding: 10px;
+            width: 300px;
+            margin: 15px 0;
+            font-size: 12px;
+            line-height: 1.2;
+        }
+
+        .ticket-logo {
+            max-width: 80px;
+            max-height: 40px;
+            display: block;
+            margin: 0 auto 5px;
+        }
+
+        /* Efeito de shake para feedback de erro */
+        .shake {
+            animation: shake 0.5s;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+    </style>
+</head>
+<body>
+    <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
+
+    <!-- NOTIFICATION -->
+    <div id="notification" class="notification">
+        <div class="notification-header">
+            <span class="notification-title" id="notificationTitle">Notificação</span>
+            <button class="notification-close" onclick="closeNotification()">&times;</button>
+        </div>
+        <div class="notification-body" id="notificationBody">Mensagem</div>
+    </div>
+
+    <!-- SIDEBAR -->
+    <div class="sidebar" id="sidebar">
+        <div class="logo">
+            <h1><i class="fas fa-theater-masks"></i> TeatroPro</h1>
+            <p>Sistema Profissional de Ingressos</p>
+        </div>
+        
+        <div class="nav-section">
+            <h3>Principal</h3>
+            <button class="nav-btn active" data-section="dashboard">
+                <i class="fas fa-chart-line"></i> Dashboard
+            </button>
+            <button class="nav-btn" data-section="vendas">
+                <i class="fas fa-shopping-cart"></i> Nova Venda
+            </button>
+            <button class="nav-btn" data-section="mapa">
+                <i class="fas fa-map-marked-alt"></i> Mapa de Assentos
+            </button>
+            <button class="nav-btn" data-section="historico">
+                <i class="fas fa-history"></i> Histórico
+            </button>
+        </div>
+
+        <div class="nav-section">
+            <h3>Gestão</h3>
+            <button class="nav-btn" data-section="editorLayout">
+                <i class="fas fa-edit"></i> Editor de Layout
+            </button>
+            <button class="nav-btn" data-section="relatorios">
+                <i class="fas fa-chart-pie"></i> Relatórios
+            </button>
+            <button class="nav-btn" data-section="checkin">
+                <i class="fas fa-check-circle"></i> Check-in
+            </button>
+        </div>
+
+        <div class="nav-section">
+            <h3>Configurações</h3>
+            <button class="nav-btn" data-section="configEvento">
+                <i class="fas fa-cog"></i> Configurar Evento
+            </button>
+            <button class="nav-btn" onclick="showBackupManager()">
+                <i class="fas fa-shield-alt"></i> Gerenciar Backups
+            </button>
+            <button class="nav-btn" data-section="exportarDados">
+                <i class="fas fa-download"></i> Exportar Dados
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+        <!-- Dashboard Section -->
+        <div id="dashboard" class="content-section active">
+            <div class="dashboard-header fade-in">
+                <div class="header-top">
+                    <h2>📊 Dashboard do Evento</h2>
+                    <div class="date-display">
+                        <i class="fas fa-clock"></i>
+                        <span id="currentDate"></span>
+                    </div>
+                </div>
+                
+                <div class="event-info-grid">
+                    <div class="event-info-card">
+                        <div class="value" id="event-name">Noite de Teatro</div>
+                        <div class="label">Nome do Evento</div>
+                    </div>
+                    <div class="event-info-card">
+                        <div class="value" id="event-date">15/12/2024</div>
+                        <div class="label">Data</div>
+                    </div>
+                    <div class="event-info-card">
+                        <div class="value" id="event-time">20:00</div>
+                        <div class="label">Horário</div>
+                    </div>
+                    <div class="event-info-card">
+                        <div class="value" id="event-price">R$ 50,00</div>
+                        <div class="label">Preço</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card sales">
+                    <div class="stat-icon"><i class="fas fa-ticket-alt"></i></div>
+                    <div class="stat-number" id="stat-sales">0</div>
+                    <div class="stat-label">Ingressos Vendidos</div>
+                </div>
+                <div class="stat-card available">
+                    <div class="stat-icon"><i class="fas fa-chair"></i></div>
+                    <div class="stat-number" id="stat-available">0</div>
+                    <div class="stat-label">Assentos Livres</div>
+                </div>
+                <div class="stat-card occupied">
+                    <div class="stat-icon"><i class="fas fa-users"></i></div>
+                    <div class="stat-number" id="stat-occupied">0</div>
+                    <div class="stat-label">Assentos Ocupados</div>
+                </div>
+                <div class="stat-card revenue">
+                    <div class="stat-icon"><i class="fas fa-dollar-sign"></i></div>
+                    <div class="stat-number" id="stat-revenue">R$ 0,00</div>
+                    <div class="stat-label">Faturamento Total</div>
+                </div>
+                <!-- Novo card de backup -->
+                <div class="stat-card" style="cursor: pointer;" onclick="showBackupManager()">
+                    <div class="stat-icon" style="background: rgba(139, 92, 246, 0.1); color: #8b5cf6;">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <div class="stat-number" id="backup-count">0</div>
+                    <div class="stat-label">Backups Ativos</div>
+                </div>
+            </div>
+
+            <!-- Gráficos -->
+            <div class="chart-container fade-in">
+                <h3>📈 Vendas por Dia</h3>
+                <canvas id="salesChart" height="80"></canvas>
+            </div>
+
+            <div class="chart-container fade-in">
+                <h3>💳 Métodos de Pagamento</h3>
+                <canvas id="paymentChart" height="80"></canvas>
+            </div>
+        </div>
+
+        <!-- Vendas Section -->
+        <div id="vendas" class="content-section">
+            <div class="dashboard-header fade-in">
+                <div class="header-top">
+                    <h2><i class="fas fa-shopping-cart"></i> Nova Venda de Ingresso</h2>
+                </div>
+                <div class="info-panel">
+                    <div class="info-section">
+                        <h3><i class="fas fa-chair"></i> Assento Selecionado</h3>
+                        <div class="info-item">
+                            <span class="info-label">Assento:</span>
+                            <span class="info-value" id="currentSeat">Nenhum</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Status:</span>
+                            <span class="info-value" id="seatStatus">Livre</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Preço:</span>
+                            <span class="info-value" id="seatPrice">R$ 0,00</span>
+                        </div>
+                    </div>
+
+                    <div class="info-section">
+                        <h3><i class="fas fa-user"></i> Dados do Cliente</h3>
+                        <div class="sales-form-grid">
+                            <div>
+                                <label for="clientName">Nome Completo *</label>
+                                <input type="text" id="clientName" class="form-control" placeholder="Nome do Cliente" required>
+                            </div>
+                            <div>
+                                <label for="clientCPF">CPF *</label>
+                                <input type="text" id="clientCPF" class="form-control" placeholder="000.000.000-00" maxlength="14" required>
+                            </div>
+                            <div>
+                                <label for="clientPhone">Telefone *</label>
+                                <input type="text" id="clientPhone" class="form-control" placeholder="(00) 00000-0000" maxlength="15" required>
+                            </div>
+                            <div>
+                                <label for="clientEmail">Email *</label>
+                                <input type="email" id="clientEmail" class="form-control" placeholder="email@exemplo.com" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="info-section">
+                        <h3><i class="fas fa-credit-card"></i> Método de Pagamento</h3>
+                        <div class="payment-methods">
+                            <div class="payment-method" data-method="credito">
+                                <i class="fas fa-credit-card"></i> Crédito
+                            </div>
+                            <div class="payment-method" data-method="debito">
+                                <i class="fas fa-money-check-alt"></i> Débito
+                            </div>
+                            <div class="payment-method" data-method="pix">
+                                <i class="fas fa-qrcode"></i> Pix
+                            </div>
+                            <div class="payment-method" data-method="dinheiro">
+                                <i class="fas fa-money-bill-wave"></i> Dinheiro
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button class="btn btn-success" id="btnFinalizarVenda">
+                            <i class="fas fa-check-circle"></i> Finalizar Venda
+                        </button>
+                        <button class="btn btn-warning" id="btnReservar">
+                            <i class="fas fa-bookmark"></i> Reservar Assento
+                        </button>
+                        <button class="btn btn-danger" id="btnEstornar">
+                            <i class="fas fa-undo"></i> Estornar/Cancelar
+                        </button>
+                        <button class="btn btn-secondary" id="btnLimpar">
+                            <i class="fas fa-times"></i> Limpar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mapa de Assentos Section -->
+        <div id="mapa" class="content-section">
+            <div class="seat-map-container fade-in">
+                <div class="map-header">
+                    <h2><i class="fas fa-map-marked-alt"></i> Mapa de Assentos</h2>
+                    <div class="map-controls">
+                        <select class="form-control" id="floor-select">
+                            <option value="ground">🎭 Térreo</option>
+                            <option value="mezz">🏛️ Mezanino</option>
+                        </select>
+                        <button class="btn btn-primary" id="mode-single">
+                            <i class="fas fa-mouse-pointer"></i> Seleção Única
+                        </button>
+                        <button class="btn btn-secondary" id="mode-multiple">
+                            <i class="fas fa-hand-pointer"></i> Seleção Múltipla
+                        </button>
+                        <button class="btn btn-info" id="mode-print">
+                            <i class="fas fa-print"></i> Modo Impressão
+                        </button>
+                        <!-- Botão para liberar assentos -->
+                        <button class="btn btn-warning" id="btnLiberarAssentos">
+                            <i class="fas fa-unlock"></i> Liberar Assentos
+                        </button>
+                        <!-- Botão para limpar mapa -->
+                        <button class="btn btn-danger" id="btnLimparMapa">
+                            <i class="fas fa-broom"></i> Limpar Mapa
+                        </button>
+                    </div>
+                </div>
+
+                <div class="alert-box info" id="printModeAlert" style="display: none;">
+                    <i class="fas fa-info-circle"></i>
+                    <div>
+                        <strong>Modo de Impressão Ativo!</strong><br>
+                        Agora você pode selecionar assentos vendidos para imprimir os ingressos. Clique nos assentos vendidos (vermelhos) e depois clique em "Imprimir Selecionados" abaixo.
+                    </div>
+                </div>
+
+                <div class="stage">🎬 PALCO 🎬</div>
+
+                <div class="seat-map" id="seatMap">
+                    <!-- Assentos serão gerados aqui pelo JS -->
+                </div>
+
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: var(--success);"></div>
+                        <span>Livre</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: var(--warning);"></div>
+                        <span>Reservado</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: var(--danger);"></div>
+                        <span>Vendido</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: var(--primary);"></div>
+                        <span>Selecionado</span>
+                    </div>
+                </div>
+
+                <div class="action-buttons" id="printModeActions" style="display: none; margin-top: 20px;">
+                    <button class="btn btn-success" onclick="imprimirSelecionados()">
+                        <i class="fas fa-print"></i> Imprimir Selecionados
+                    </button>
+                    <button class="btn btn-secondary" onclick="desativarModoPrint()">
+                        <i class="fas fa-times"></i> Sair do Modo Impressão
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Histórico Section -->
+        <div id="historico" class="content-section">
+            <div class="dashboard-header fade-in">
+                <div class="header-top">
+                    <h2><i class="fas fa-history"></i> Histórico de Transações</h2>
+                </div>
+                
+                <div class="search-bar">
+                    <input type="text" id="searchTransaction" placeholder="Buscar por nome, CPF, assento...">
+                    <i class="fas fa-search"></i>
+                </div>
+
+                <!-- Filtros adicionados -->
+                <div class="filter-buttons" style="margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button class="btn btn-secondary btn-sm" data-filter="all">Todos</button>
+                    <button class="btn btn-success btn-sm" data-filter="sold">Vendidos</button>
+                    <button class="btn btn-warning btn-sm" data-filter="reserved">Reservados</button>
+                    <button class="btn btn-info btn-sm" data-filter="checkedin">Check-in OK</button>
+                    <button class="btn btn-danger btn-sm" data-filter="pending">Pendentes</button>
+                </div>
+
+                <div class="transaction-list" id="transactionList">
+                    <!-- Transações serão listadas aqui -->
+                </div>
+            </div>
+        </div>        <!-- Editor de Layout Section -->
+        <div id="editorLayout" class="content-section">
+            <div class="dashboard-header fade-in">
+                <div class="header-top">
+                    <h2><i class="fas fa-edit"></i> Editor de Layout</h2>
+                </div>
+                <p style="color: var(--gray); margin-bottom: 20px;">Configure as fileiras e assentos do seu teatro de forma personalizada.</p>
+                <button class="btn btn-primary" onclick="openModal('modalEditor')">
+                    <i class="fas fa-edit"></i> Abrir Editor de Layout
+                </button>
+            </div>
+        </div>
+
+        <!-- Relatórios Section -->
+        <div id="relatorios" class="content-section">
+            <div class="dashboard-header fade-in">
+                <div class="header-top">
+                    <h2><i class="fas fa-chart-pie"></i> Relatórios Detalhados</h2>
+                </div>
+            </div>
+
+            <div class="chart-container fade-in">
+                <h3>📊 Ocupação por Andar</h3>
+                <canvas id="occupancyChart" height="80"></canvas>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(99, 102, 241, 0.1); color: var(--primary);">
+                        <i class="fas fa-percentage"></i>
+                    </div>
+                    <div class="stat-number" id="stat-occupation-rate">0%</div>
+                    <div class="stat-label">Taxa de Ocupação</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(34, 197, 94, 0.1); color: var(--success);">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="stat-number" id="stat-avg-ticket">R$ 0,00</div>
+                    <div class="stat-label">Ticket Médio</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(245, 158, 11, 0.1); color: var(--warning);">
+                        <i class="fas fa-bookmark"></i>
+                    </div>
+                    <div class="stat-number" id="stat-reservations">0</div>
+                    <div class="stat-label">Reservas Ativas</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(239, 68, 68, 0.1); color: var(--danger);">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-number" id="stat-pending">0</div>
+                    <div class="stat-label">Pendentes</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Check-in Section -->
+        <div id="checkin" class="content-section">
+            <div class="dashboard-header fade-in">
+                <div class="header-top">
+                    <h2><i class="fas fa-check-circle"></i> Sistema de Check-in</h2>
+                </div>
+                
+                <div class="info-panel">
+                    <div class="info-section">
+                        <h3><i class="fas fa-qrcode"></i> Validar Ingresso</h3>
+                        <div class="search-bar">
+                            <input type="text" id="checkinCode" placeholder="Digite o código do ingresso ou escaneie o QR Code">
+                            <i class="fas fa-qrcode"></i>
+                        </div>
+                        <button class="btn btn-success mt-20" onclick="validateTicket()">
+                            <i class="fas fa-check"></i> Validar Ingresso
+                        </button>
+                    </div>
+
+                    <div class="info-section">
+                        <h3><i class="fas fa-list"></i> Check-ins Realizados</h3>
+                        <div id="checkinList">
+                            <p style="color: var(--gray); text-align: center;">Nenhum check-in realizado ainda.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Configurar Evento Section -->
+        <div id="configEvento" class="content-section">
+            <div class="dashboard-header fade-in">
+                <div class="header-top">
+                    <h2><i class="fas fa-cog"></i> Configurações do Evento</h2>
+                </div>
+                
+                <div class="info-panel">
+                    <div class="info-section">
+                        <h3><i class="fas fa-info-circle"></i> Informações do Evento</h3>
+                        <div class="sales-form-grid">
+                            <div>
+                                <label for="configEventName">Nome do Evento</label>
+                                <input type="text" id="configEventName" class="form-control" value="Noite de Teatro">
+                            </div>
+                            <div>
+                                <label for="configEventDate">Data</label>
+                                <input type="date" id="configEventDate" class="form-control" value="2024-12-15">
+                            </div>
+                            <div>
+                                <label for="configEventTime">Horário</label>
+                                <input type="time" id="configEventTime" class="form-control" value="20:00">
+                            </div>
+                            <div>
+                                <label for="configEventPrice">Preço do Ingresso (R$)</label>
+                                <input type="number" id="configEventPrice" class="form-control" value="50.00" step="0.01">
+                            </div>
+                        </div>
+                        <button class="btn btn-success mt-20" onclick="saveEventConfig()">
+                            <i class="fas fa-save"></i> Salvar Configurações
+                        </button>
+                    </div>
+                    
+                    <!-- Configurações de Impressão -->
+                    <div class="info-section">
+                        <h3><i class="fas fa-print"></i> Configurações de Impressão</h3>
+                        <div class="sales-form-grid">
+                            <div>
+                                <label for="logoUpload">Logo do Evento</label>
+                                <input type="file" id="logoUpload" class="form-control" accept="image/*">
+                                <div id="logoPreview" class="logo-preview">
+                                    Nenhuma logo carregada
+                                </div>
+                                <small style="color: var(--gray);">Recomendado: PNG com fundo transparente, até 150x80px</small>
+                            </div>
+                            <div>
+                                <label for="thermalWidth">Largura da Impressora (mm)</label>
+                                <select id="thermalWidth" class="form-control">
+                                    <option value="58">58mm (Padrão)</option>
+                                    <option value="80" selected>80mm</option>
+                                    <option value="112">112mm</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="fontSize">Tamanho da Fonte</label>
+                                <select id="fontSize" class="form-control">
+                                    <option value="small">Pequeno</option>
+                                    <option value="medium" selected>Médio</option>
+                                    <option value="large">Grande</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="printQuality">Qualidade de Impressão</label>
+                                <select id="printQuality" class="form-control">
+                                    <option value="normal">Normal</option>
+                                    <option value="high">Alta</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label>Prévia do Ingresso:</label>
+                            <div class="thermal-preview" id="thermalPreview">
+                                <div id="previewContent">
+                                    <!-- Conteúdo da prévia será gerado pelo JS -->
+                                </div>
+                            </div>
+                        </div>
+                        <div class="action-buttons">
+                            <button class="btn btn-primary" onclick="savePrintConfig()">
+                                <i class="fas fa-save"></i> Salvar Configurações
+                            </button>
+                            <button class="btn btn-info" onclick="testPrint()">
+                                <i class="fas fa-print"></i> Imprimir Teste
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Exportar Dados Section -->
+        <div id="exportarDados" class="content-section">
+            <div class="dashboard-header fade-in">
+                <div class="header-top">
+                    <h2><i class="fas fa-download"></i> Exportar Dados</h2>
+                </div>
+                
+                <div class="info-panel">
+                    <div class="info-section">
+                        <h3><i class="fas fa-file-export"></i> Exportar Relatórios</h3>
+                        <p style="color: var(--gray); margin-bottom: 20px;">Exporte os dados do sistema em diferentes formatos para análise externa.</p>
+                        
+                        <div class="action-buttons">
+                            <button class="btn btn-success" onclick="exportToCSV()">
+                                <i class="fas fa-file-csv"></i> Exportar CSV
+                            </button>
+                            <button class="btn btn-primary" onclick="exportToJSON()">
+                                <i class="fas fa-file-code"></i> Exportar JSON
+                            </button>
+                            <button class="btn btn-danger" onclick="exportToPDF()">
+                                <i class="fas fa-file-pdf"></i> Exportar PDF
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- AI ASSISTANT -->
+    <div class="ai-assistant">
+        <button class="ai-toggle pulse" id="aiToggle">
+            <i class="fas fa-robot"></i>
+        </button>
+        <div class="ai-panel" id="aiPanel">
+            <div class="ai-header">
+                <span><i class="fas fa-robot"></i> Assistente IA</span>
+                <button class="close" id="closeAI">&times;</button>
+            </div>
+            <div class="ai-messages" id="aiMessages">
+                <div class="message assistant">
+                    Olá! 👋 Sou seu assistente de IA. Posso ajudar com vendas, layout do mapa, impressão de ingressos e muito mais. Como posso ajudar?
+                </div>
+            </div>
+            <div class="ai-input">
+                <input type="text" id="aiInput" placeholder="Pergunte algo sobre o sistema...">
+                <button id="sendAI">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL EDITOR DE LAYOUT -->
+    <div id="modalEditor" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-edit"></i> Editor de Layout</h2>
+                <button class="close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="editor-section">
+                    <h3>🎭 Térreo</h3>
+                    <div class="editor-rows" id="groundEditor">
+                        <!-- Fileiras serão adicionadas aqui -->
+                    </div>
+                    <button class="btn btn-success" onclick="addEditorRow('ground')">
+                        <i class="fas fa-plus"></i> Adicionar Fileira
+                    </button>
+                </div>
+
+                <div class="editor-section">
+                    <h3>🏛️ Mezanino</h3>
+                    <div class="editor-rows" id="mezzEditor">
+                        <!-- Fileiras serão adicionadas aqui -->
+                    </div>
+                    <button class="btn btn-success" onclick="addEditorRow('mezz')">
+                        <i class="fas fa-plus"></i> Adicionar Fileira
+                    </button>
+                </div>
+
+                <div style="display: flex; gap: 15px; margin-top: 30px; flex-wrap: wrap;">
+                    <button class="btn btn-success" id="btnAplicarLayout">
+                        <i class="fas fa-check"></i> Aplicar Layout
+                    </button>
+                    <button class="btn btn-warning" id="btnResetLayout">
+                        <i class="fas fa-redo"></i> Layout Padrão
+                    </button>
+                    <button class="btn btn-secondary" onclick="closeModal('modalEditor')">
+                        <i class="fas fa-times"></i> Fechar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 🔥 API INCLUÍDA DIRETAMENTE NO HTML - TEATROPRO
+        class IngressosAPI {
+            static async carregarDados() {
+                try {
+                    const response = await fetch('/api/ingressos');
+                    if (!response.ok) throw new Error('Erro na rede');
+                    const data = await response.json();
+                    return data;
+                } catch (error) {
+                    console.error('Erro ao carregar ingressos:', error);
+                    return { ingressosVendidos: 0, vendas: [], totalArrecadado: 0 };
+                }
+            }
+
+            static async salvarDados(dados) {
+                try {
+                    const response = await fetch('/api/ingressos', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(dados)
+                    });
+                    return await response.json();
+                } catch (error) {
+                    console.error('Erro ao salvar ingressos:', error);
+                    return { success: false };
+                }
+            }
+
+            static async venderIngresso(dadosVenda) {
+                try {
+                    const dadosAtuais = await this.carregarDados();
+                    
+                    // Adiciona a nova venda
+                    dadosAtuais.vendas.push({
+                        id: Date.now(),
+                        data: new Date().toLocaleString('pt-BR'),
+                        ...dadosVenda
+                    });
+                    
+                    // Atualiza totais
+                    dadosAtuais.ingressosVendidos += dadosVenda.quantidade || 1;
+                    dadosAtuais.totalArrecadado += dadosVenda.valor || 0;
+                    
+                    // Salva
+                    const resultado = await this.salvarDados(dadosAtuais);
+                    return resultado.success;
+                    
+                } catch (error) {
+                    console.error('Erro ao vender ingresso:', error);
+                    return false;
+                }
+            }
+
+            static async getResumo() {
+                const dados = await this.carregarDados();
+                return {
+                    vendidos: dados.ingressosVendidos,
+                    total: dados.totalArrecadado,
+                    vendas: dados.vendas
+                };
+            }
+        }
+
+        // Torna disponível globalmente
+        window.IngressosAPI = IngressosAPI;
+        console.log('✅ API TeatroPro carregada com sucesso!');
+    </script>
+
+    <script>
+        // =============================================
+        // SISTEMA PRINCIPAL - TEATROPRO
+        // =============================================
+
+        const CONFIG = {
+            TICKET_PRICE: 50.00,
+            EVENT_NAME: 'Noite de Teatro',
+            EVENT_DATE: '2024-12-15',
+            EVENT_TIME: '20:00',
+            EVENT_LOCATION: 'Teatro Municipal',
+            PRINT_CONFIG: {
+                thermalWidth: 80,
+                fontSize: 'medium',
+                logo: null,
+                printQuality: 'normal'
+            }
+        };
+
+        // Estado do sistema
+        let state = {
+            layout: {
+                ground: { A: 8, B: 8, C: 10, D: 10, E: 12 },
+                mezz: { AA: 6, BB: 6, CC: 8, DD: 8 }
+            },
+            vendas: {},
+            selectedSeats: [],
+            selectionMode: 'single',
+            currentFloor: 'ground',
+            selectedPayment: null,
+            checkins: [],
+            printMode: false
+        };
+
+        // =============================================
+        // INICIALIZAÇÃO DO SISTEMA
+        // =============================================
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🎭 Iniciando TeatroPro...');
+            initializeSystem();
+            initializeAI();
+            updateCurrentDate();
+            switchSection('dashboard');
+            setupMasks();
+            loadPrintConfig();
+            updateThermalPreview();
+        });
+
+        function initializeSystem() {
+            loadState();
+            setupEventListeners();
+            setupAutoSave(); // ← BACKUP AUTOMÁTICO ADICIONADO
+            buildSeatMap(state.currentFloor);
+            updateDashboard();
+            updateEventInfo();
+            setupPaymentMethods();
+            populateEditorLayout();
+            updateTransactionList();
+            initCharts();
+            updateBackupIndicator(); // ← INDICADOR DE BACKUP
+            loadEventConfigToForm(); // ← CARREGAR CONFIGURAÇÕES SALVAS
+        }
+
+        // =============================================
+        // SISTEMA DE BACKUP AUTOMÁTICO - CORRIGIDO
+        // =============================================
+
+        function setupAutoSave() {
+            // Salva automaticamente a cada 30 segundos
+            setInterval(() => {
+                saveState();
+                createBackup();
+                console.log('💾 Estado salvo e backup criado automaticamente');
+            }, 30000);
+
+            // Também salva quando o usuário sai da página
+            window.addEventListener('beforeunload', () => {
+                saveState();
+                createBackup();
+            });
+        }
+
+        function createBackup() {
+            try {
+                const backup = {
+                    timestamp: new Date().toISOString(),
+                    data: new Date().toLocaleString('pt-BR'),
+                    state: JSON.parse(JSON.stringify(state)),
+                    config: JSON.parse(JSON.stringify(CONFIG)),
+                    version: '1.0'
+                };
+
+                // Manter apenas os 5 backups mais recentes
+                const backups = getBackups();
+                backups.unshift(backup);
+                const recentBackups = backups.slice(0, 5);
+
+                localStorage.setItem('teatroProBackups', JSON.stringify(recentBackups));
+                updateBackupIndicator();
+                
+            } catch (error) {
+                console.error('❌ Erro ao criar backup:', error);
+            }
+        }
+
+        function getBackups() {
+            try {
+                return JSON.parse(localStorage.getItem('teatroProBackups') || '[]');
+            } catch (error) {
+                console.error('Erro ao carregar backups:', error);
+                return [];
+            }
+        }
+
+        function restoreBackup(backupIndex = 0) {
+            const backups = getBackups();
+            if (backups.length === 0) {
+                showNotification('Atenção', 'Nenhum backup encontrado para restaurar.', 'warning');
+                return;
+            }
+
+            const backup = backups[backupIndex];
+            if (!backup) {
+                showNotification('Erro', 'Backup selecionado não encontrado.', 'error');
+                return;
+            }
+
+            const modal = document.createElement('div');
+            modal.className = 'modal show';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>🔄 Confirmar Restauração de Backup</h3>
+                        <button class="close">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                            <p><strong>Backup selecionado:</strong></p>
+                            <p>📅 Data: ${backup.data}</p>
+                            <p>💾 Timestamp: ${new Date(backup.timestamp).toLocaleString('pt-BR')}</p>
+                        </div>
+                        
+                        <p style="color: var(--danger); font-weight: bold;">
+                            ⚠️ ATENÇÃO: Esta ação substituirá TODOS os dados atuais do sistema!
+                        </p>
+                        
+                        <ul style="color: var(--gray); margin: 15px 0; padding-left: 20px;">
+                            <li>Vendas atuais serão perdidas</li>
+                            <li>Reservas atuais serão perdidas</li>
+                            <li>Layout atual será substituído</li>
+                            <li>Check-ins serão resetados</li>
+                        </ul>
+                        
+                        <div class="action-buttons">
+                            <button class="btn btn-danger" id="confirmRestore">
+                                <i class="fas fa-redo"></i> Confirmar Restauração
+                            </button>
+                            <button class="btn btn-secondary" id="cancelRestore">
+                                <i class="fas fa-times"></i> Cancelar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            document.getElementById('confirmRestore').addEventListener('click', function() {
+                try {
+                    state = backup.state;
+                    CONFIG.EVENT_NAME = backup.config.EVENT_NAME || CONFIG.EVENT_NAME;
+                    CONFIG.EVENT_DATE = backup.config.EVENT_DATE || CONFIG.EVENT_DATE;
+                    CONFIG.EVENT_TIME = backup.config.EVENT_TIME || CONFIG.EVENT_TIME;
+                    CONFIG.TICKET_PRICE = backup.config.TICKET_PRICE || CONFIG.TICKET_PRICE;
+                    
+                    saveState();
+                    initializeSystem();
+                    
+                    showNotification('Sucesso', `Backup de ${backup.data} restaurado com sucesso!`, 'success');
+                    document.body.removeChild(modal);
+                    
+                } catch (error) {
+                    console.error('Erro ao restaurar backup:', error);
+                    showNotification('Erro', 'Falha ao restaurar backup.', 'error');
+                    document.body.removeChild(modal);
+                }
+            });
+            
+            document.getElementById('cancelRestore').addEventListener('click', function() {
+                document.body.removeChild(modal);
+            });
+            
+            modal.querySelector('.close').addEventListener('click', function() {
+                document.body.removeChild(modal);
+            });
+        }
+
+        function showBackupManager() {
+            const backups = getBackups();
+            
+            const modal = document.createElement('div');
+            modal.className = 'modal show';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>💾 Gerenciador de Backups</h3>
+                        <button class="close">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div style="margin-bottom: 20px;">
+                            <p style="color: var(--gray);">Backups automáticos são criados a cada 30 segundos e quando você sai da página.</p>
+                        </div>
+                        
+                        ${backups.length === 0 ? 
+                            '<p style="text-align: center; color: var(--gray); padding: 40px;">Nenhum backup disponível.</p>' : 
+                            `
+                            <div style="max-height: 400px; overflow-y: auto;">
+                                <table style="width: 100%; border-collapse: collapse;">
+                                    <thead>
+                                        <tr style="background: #f8fafc;">
+                                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb;">Data/Hora</th>
+                                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb;">Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${backups.map((backup, index) => `
+                                            <tr>
+                                                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">
+                                                    <div>📅 ${backup.data}</div>
+                                                    <div style="font-size: 0.8rem; color: var(--gray);">
+                                                        ${new Date(backup.timestamp).toLocaleString('pt-BR')}
+                                                    </div>
+                                                </td>
+                                                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">
+                                                    <button class="btn btn-primary btn-sm" onclick="restoreBackup(${index})">
+                                                        <i class="fas fa-redo"></i> Restaurar
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                            `
+                        }
+                        
+                        <div class="action-buttons" style="margin-top: 20px;">
+                            <button class="btn btn-secondary" onclick="document.body.removeChild(this.closest('.modal'))">
+                                <i class="fas fa-times"></i> Fechar
+                            </button>
+                            ${backups.length > 0 ? `
+                                <button class="btn btn-danger" onclick="clearAllBackups()">
+                                    <i class="fas fa-trash"></i> Limpar Todos os Backups
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            modal.querySelector('.close').addEventListener('click', function() {
+                document.body.removeChild(modal);
+            });
+        }
+
+        function clearAllBackups() {
+            if (confirm('⚠️ Tem certeza que deseja excluir TODOS os backups? Esta ação não pode ser desfeita!')) {
+                localStorage.removeItem('teatroProBackups');
+                showNotification('Sucesso', 'Todos os backups foram removidos.', 'success');
+                document.querySelectorAll('.modal').forEach(modal => modal.remove());
+                setTimeout(showBackupManager, 300);
+            }
+        }
+
+        function updateBackupIndicator() {
+            let indicator = document.getElementById('backupIndicator');
+            if (!indicator) {
+                indicator = document.createElement('div');
+                indicator.id = 'backupIndicator';
+                indicator.style.cssText = `
+                    position: fixed;
+                    bottom: 20px;
+                    left: 20px;
+                    background: var(--success);
+                    color: white;
+                    padding: 8px 12px;
+                    border-radius: 20px;
+                    font-size: 0.8rem;
+                    z-index: 1000;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    box-shadow: var(--shadow);
+                `;
+                document.body.appendChild(indicator);
+            }
+            
+            const backups = getBackups();
+            const lastBackup = backups[0];
+            
+            if (lastBackup) {
+                indicator.innerHTML = `
+                    <i class="fas fa-shield-alt"></i>
+                    Backup: ${new Date(lastBackup.timestamp).toLocaleTimeString('pt-BR')}
+                `;
+                indicator.style.background = 'var(--success)';
+            } else {
+                indicator.innerHTML = `
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Sem backup
+                `;
+                indicator.style.background = 'var(--warning)';
+            }
+            
+            // Atualizar contador no dashboard
+            updateBackupStats();
+        }
+
+        function updateBackupStats() {
+            const backups = getBackups();
+            const backupCount = document.getElementById('backup-count');
+            if (backupCount) {
+                backupCount.textContent = backups.length;
+            }
+        }
+
+        // =============================================
+        // SALVAMENTO E CARREGAMENTO - CORRIGIDOS
+        // =============================================
+
+        function loadState() {
+            const saved = localStorage.getItem('teatroProState');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    
+                    // Carregar state (vendas, layout, etc.)
+                    state.layout = parsed.state.layout || state.layout;
+                    state.vendas = parsed.state.vendas || {};
+                    state.checkins = parsed.state.checkins || [];
+                    
+                    // ⭐ IMPORTANTE: Carregar configurações do evento
+                    if (parsed.config) {
+                        CONFIG.EVENT_NAME = parsed.config.EVENT_NAME || CONFIG.EVENT_NAME;
+                        CONFIG.EVENT_DATE = parsed.config.EVENT_DATE || CONFIG.EVENT_DATE;
+                        CONFIG.EVENT_TIME = parsed.config.EVENT_TIME || CONFIG.EVENT_TIME;
+                        CONFIG.TICKET_PRICE = parsed.config.TICKET_PRICE || CONFIG.TICKET_PRICE;
+                        CONFIG.EVENT_LOCATION = parsed.config.EVENT_LOCATION || CONFIG.EVENT_LOCATION;
+                    }
+                    
+                    console.log('✅ Configurações carregadas:', CONFIG);
+                    
+                } catch (error) {
+                    console.error('❌ Erro ao carregar estado:', error);
+                }
+            }
+        }
+
+        function saveState() {
+            const dataToSave = {
+                state: state,
+                config: CONFIG,  // ← SALVAR AS CONFIGURAÇÕES TAMBÉM!
+                lastSave: new Date().toISOString()
+            };
+            
+            localStorage.setItem('teatroProState', JSON.stringify(dataToSave));
+        }
+
+        function loadEventConfigToForm() {
+            document.getElementById('configEventName').value = CONFIG.EVENT_NAME;
+            document.getElementById('configEventDate').value = CONFIG.EVENT_DATE;
+            document.getElementById('configEventTime').value = CONFIG.EVENT_TIME;
+            document.getElementById('configEventPrice').value = CONFIG.TICKET_PRICE.toFixed(2);
+        }
+
+        // =============================================
+        // FUNÇÕES DO SISTEMA PRINCIPAIS
+        // =============================================
+
+        function updateCurrentDate() {
+            const now = new Date();
+            document.getElementById('currentDate').textContent =
+                now.toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) + 
+                ' - ' + now.toLocaleTimeString('pt-BR').substring(0, 5);
+        }
+
+        function switchSection(sectionId) {
+            document.querySelectorAll('.content-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById(sectionId).classList.add('active');
+
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.section === sectionId) {
+                    btn.classList.add('active');
+                }
+            });
+
+            const sidebar = document.getElementById('sidebar');
+            if (window.innerWidth <= 1200 && sidebar.classList.contains('active')) {
+                sidebar.classList.remove('active');
+            }
+
+            if (sectionId === 'mapa') {
+                buildSeatMap(state.currentFloor);
+            } else if (sectionId === 'historico') {
+                updateTransactionList();
+            } else if (sectionId === 'relatorios') {
+                updateReports();
+            } else if (sectionId === 'configEvento') {
+                updateThermalPreview();
+            }
+        }
+
+        // =============================================
+        // CONFIGURAÇÕES DO EVENTO - CORRIGIDAS
+        // =============================================
+
+        function saveEventConfig() {
+            // Atualizar CONFIG com os valores dos inputs
+            CONFIG.EVENT_NAME = document.getElementById('configEventName').value;
+            CONFIG.EVENT_DATE = document.getElementById('configEventDate').value;
+            CONFIG.EVENT_TIME = document.getElementById('configEventTime').value;
+            CONFIG.TICKET_PRICE = parseFloat(document.getElementById('configEventPrice').value);
+
+            // SALVAR NO LOCALSTORAGE - Esta é a parte importante!
+            saveState();
+            
+            // Atualizar a interface
+            updateEventInfo();
+            updateThermalPreview();
+            updateDashboard();
+            
+            showNotification('Sucesso', 'Configurações salvas com sucesso!', 'success');
+        }
+
+        function updateEventInfo() {
+            document.getElementById('event-name').textContent = CONFIG.EVENT_NAME;
+            document.getElementById('event-date').textContent = CONFIG.EVENT_DATE.split('-').reverse().join('/');
+            document.getElementById('event-time').textContent = CONFIG.EVENT_TIME;
+            document.getElementById('event-price').textContent = `R$ ${CONFIG.TICKET_PRICE.toFixed(2)}`;
+        }
+
+        // =============================================
+        // MAPA DE ASSENTOS E VENDAS
+        // =============================================
+
+        function buildSeatMap(floor) {
+            const seatMap = document.getElementById('seatMap');
+            seatMap.innerHTML = '';
+
+            const layout = state.layout[floor];
+            if (!layout || Object.keys(layout).length === 0) {
+                seatMap.innerHTML = '<p style="text-align: center; color: var(--gray);">Layout não configurado para este andar.</p>';
+                return;
+            }
+
+            for (const [row, seatCount] of Object.entries(layout)) {
+                const rowElement = document.createElement('div');
+                rowElement.className = 'row';
+
+                const labelElement = document.createElement('div');
+                labelElement.className = 'row-label';
+                labelElement.textContent = row;
+                rowElement.appendChild(labelElement);
+
+                const seatsElement = document.createElement('div');
+                seatsElement.className = 'seats';
+
+                for (let i = 1; i <= seatCount; i++) {
+                    const seatId = `${floor}-${row}${i.toString().padStart(2, '0')}`;
+                    const seatElement = document.createElement('div');
+                    seatElement.className = 'seat free';
+                    seatElement.textContent = i;
+                    seatElement.dataset.seatId = seatId;
+                    seatElement.title = `Assento ${seatId}`;
+                    
+                    if (state.vendas[seatId]) {
+                        seatElement.className = `seat ${state.vendas[seatId].status}`;
+                    }
+
+                    if (state.selectedSeats.includes(seatId)) {
+                        seatElement.classList.add('selected');
+                    }
+
+                    seatElement.addEventListener('click', () => handleSeatClick(seatId));
+                    seatsElement.appendChild(seatElement);
+                }
+
+                rowElement.appendChild(seatsElement);
+                seatMap.appendChild(rowElement);
+            }
+        }
+
+        function handleSeatClick(seatId) {
+            const seatElement = document.querySelector(`[data-seat-id="${seatId}"]`);
+            if (!seatElement) return;
+
+            const isSold = seatElement.classList.contains('sold');
+            const isReserved = seatElement.classList.contains('reserved');
+
+            // Adicionar animação de clique
+            seatElement.style.transform = 'scale(0.9)';
+            setTimeout(() => {
+                seatElement.style.transform = '';
+            }, 200);
+
+            // Se estiver no modo de impressão
+            if (state.printMode) {
+                if (!isSold) {
+                    showNotification('Atenção', 'No modo de impressão, apenas assentos vendidos podem ser selecionados.', 'warning');
+                    seatElement.classList.add('shake');
+                    setTimeout(() => {
+                        seatElement.classList.remove('shake');
+                    }, 500);
+                    return;
+                }
+
+                // Toggle selection
+                const index = state.selectedSeats.indexOf(seatId);
+                if (index > -1) {
+                    state.selectedSeats.splice(index, 1);
+                    seatElement.classList.remove('selected');
+                } else {
+                    state.selectedSeats.push(seatId);
+                    seatElement.classList.add('selected');
+                }
+                return;
+            }
+
+            // Modo normal - não permitir selecionar vendidos ou reservados
+            if (isSold || isReserved) {
+                showSeatInfo(seatId);
+                return;
+            }
+
+            // Lógica de seleção normal
+            if (state.selectionMode === 'single') {
+                document.querySelectorAll('.seat.selected').forEach(el => {
+                    el.classList.remove('selected');
+                });
+                state.selectedSeats = [seatId];
+                seatElement.classList.add('selected');
+            } else {
+                const index = state.selectedSeats.indexOf(seatId);
+                if (index > -1) {
+                    state.selectedSeats.splice(index, 1);
+                    seatElement.classList.remove('selected');
+                } else {
+                    state.selectedSeats.push(seatId);
+                    seatElement.classList.add('selected');
+                }
+            }
+
+            updateSelectionInfo();
+            updateSeatInfo();
+        }
+
+        function showSeatInfo(seatId) {
+            const venda = state.vendas[seatId];
+            if (!venda) return;
+
+            let info = `🎫 Assento: ${seatId}\n`;
+            info += `📊 Status: ${venda.status === 'sold' ? 'Vendido' : 'Reservado'}\n\n`;
+            if (venda.cliente) {
+                info += `👤 Cliente: ${venda.cliente.nome}\n`;
+                info += `📄 CPF: ${venda.cliente.cpf}\n`;
+                info += `📞 Telefone: ${venda.cliente.telefone}\n`;
+                info += `📧 Email: ${venda.cliente.email}\n\n`;
+            }
+            info += `💰 Valor: R$ ${venda.valor.toFixed(2)}\n`;
+            info += `📅 Data: ${new Date(venda.data).toLocaleString('pt-BR')}`;
+            if (venda.metodoPagamento) {
+                info += `\n💳 Pagamento: ${venda.metodoPagamento}`;
+            }
+            
+            alert(info);
+        }
+
+        function updateSelectionInfo() {
+            if (state.selectedSeats.length > 0) {
+                console.log(`Assentos selecionados: ${state.selectedSeats.join(', ')}`);
+            }
+        }
+
+        function updateSeatInfo() {
+            const currentSeatSpan = document.getElementById('currentSeat');
+            const seatStatusSpan = document.getElementById('seatStatus');
+            const seatPriceSpan = document.getElementById('seatPrice');
+
+            if (state.selectedSeats.length === 1) {
+                const seatId = state.selectedSeats[0];
+                currentSeatSpan.textContent = seatId;
+                
+                const venda = state.vendas[seatId];
+                if (venda) {
+                    seatStatusSpan.textContent = venda.status === 'sold' ? 'Vendido' : 'Reservado';
+                    seatStatusSpan.style.color = venda.status === 'sold' ? 'var(--danger)' : 'var(--warning)';
+                    seatPriceSpan.textContent = `R$ ${venda.valor.toFixed(2)}`;
+                } else {
+                    seatStatusSpan.textContent = 'Livre';
+                    seatStatusSpan.style.color = 'var(--success)';
+                    seatPriceSpan.textContent = `R$ ${CONFIG.TICKET_PRICE.toFixed(2)}`;
+                }
+            } else if (state.selectedSeats.length > 1) {
+                currentSeatSpan.textContent = `${state.selectedSeats.length} Assentos`;
+                seatStatusSpan.textContent = 'Múltiplos Selecionados';
+                seatStatusSpan.style.color = 'var(--primary)';
+                seatPriceSpan.textContent = `R$ ${(CONFIG.TICKET_PRICE * state.selectedSeats.length).toFixed(2)}`;
+            } else {
+                currentSeatSpan.textContent = 'Nenhum';
+                seatStatusSpan.textContent = 'Livre';
+                seatStatusSpan.style.color = 'var(--success)';
+                seatPriceSpan.textContent = `R$ ${CONFIG.TICKET_PRICE.toFixed(2)}`;
+            }
+        }
+
+        // =============================================
+        // FUNÇÕES DE VENDA E TRANSAÇÕES
+        // =============================================
+
+        function getClientData() {
+            return {
+                nome: document.getElementById('clientName').value.trim(),
+                cpf: document.getElementById('clientCPF').value.trim(),
+                telefone: document.getElementById('clientPhone').value.trim(),
+                email: document.getElementById('clientEmail').value.trim()
+            };
+        }
+
+        function validateClientData(client) {
+            if (!client.nome || !client.cpf || !client.telefone || !client.email) {
+                showNotification('Erro', 'Por favor, preencha todos os dados do cliente.', 'error');
+                return false;
+            }
+            if (!client.email.includes('@') || !client.email.includes('.')) {
+                showNotification('Erro', 'Por favor, insira um email válido.', 'error');
+                return false;
+            }
+            if (client.cpf.replace(/\D/g, '').length !== 11) {
+                showNotification('Erro', 'CPF inválido. Digite 11 dígitos.', 'error');
+                return false;
+            }
+            return true;
+        }
+
+        function processarVenda() {
+            if (state.selectedSeats.length === 0) {
+                showNotification('Atenção', 'Por favor, selecione pelo menos um assento para vender.', 'warning');
+                return;
+            }
+            if (!state.selectedPayment) {
+                showNotification('Atenção', 'Por favor, selecione um método de pagamento.', 'warning');
+                return;
+            }
+
+            const clientData = getClientData();
+            if (!validateClientData(clientData)) return;
+
+            const confirmSale = confirm(`Confirmar venda de ${state.selectedSeats.length} assento(s) por R$ ${(CONFIG.TICKET_PRICE * state.selectedSeats.length).toFixed(2)}?`);
+            if (!confirmSale) return;
+
+            state.selectedSeats.forEach(seatId => {
+                const transactionId = generateTransactionId();
+                state.vendas[seatId] = {
+                    status: 'sold',
+                    cliente: clientData,
+                    valor: CONFIG.TICKET_PRICE,
+                    data: new Date().toISOString(),
+                    metodoPagamento: state.selectedPayment,
+                    transactionId: transactionId,
+                    ticketId: generateTicketId(seatId),
+                    checkedIn: false
+                };
+            });
+            
+            showNotification('Sucesso', `Venda de ${state.selectedSeats.length} assento(s) finalizada com sucesso!`, 'success');
+            clearSelectionAndForm();
+            saveState();
+            buildSeatMap(state.currentFloor);
+            updateDashboard();
+            updateTransactionList();
+            updateCharts();
+        }
+
+        function processarReserva() {
+            if (state.selectedSeats.length === 0) {
+                showNotification('Atenção', 'Por favor, selecione pelo menos um assento para reservar.', 'warning');
+                return;
+            }
+
+            const clientData = getClientData();
+            if (!validateClientData(clientData)) return;
+
+            const confirmReservation = confirm(`Confirmar reserva de ${state.selectedSeats.length} assento(s)?`);
+            if (!confirmReservation) return;
+
+            state.selectedSeats.forEach(seatId => {
+                const transactionId = generateTransactionId();
+                state.vendas[seatId] = {
+                    status: 'reserved',
+                    cliente: clientData,
+                    valor: CONFIG.TICKET_PRICE,
+                    data: new Date().toISOString(),
+                    transactionId: transactionId
+                };
+            });
+            
+            showNotification('Sucesso', `Reserva de ${state.selectedSeats.length} assento(s) realizada com sucesso!`, 'success');
+            clearSelectionAndForm();
+            saveState();
+            buildSeatMap(state.currentFloor);
+            updateDashboard();
+            updateTransactionList();
+        }
+
+        function processarEstornar() {
+            if (state.selectedSeats.length === 0) {
+                showNotification('Atenção', 'Por favor, selecione pelo menos um assento para estornar/cancelar.', 'warning');
+                return;
+            }
+
+            const soldOrReservedSeats = state.selectedSeats.filter(seatId => 
+                state.vendas[seatId] && (state.vendas[seatId].status === 'sold' || state.vendas[seatId].status === 'reserved')
+            );
+
+            if (soldOrReservedSeats.length === 0) {
+                showNotification('Atenção', 'Nenhum dos assentos selecionados está vendido ou reservado.', 'warning');
+                return;
+            }
+
+            const confirmRefund = confirm(`Confirmar estorno/cancelamento de ${soldOrReservedSeats.length} assento(s)?`);
+            if (!confirmRefund) return;
+
+            soldOrReservedSeats.forEach(seatId => {
+                delete state.vendas[seatId];
+            });
+            
+            showNotification('Sucesso', `${soldOrReservedSeats.length} assento(s) estornado(s)/cancelado(s) com sucesso!`, 'success');
+            clearSelectionAndForm();
+            saveState();
+            buildSeatMap(state.currentFloor);
+            updateDashboard();
+            updateTransactionList();
+            updateCharts();
+        }
+
+        function generateTicketId(seatId) {
+            // Combina o seatId com um timestamp e um hash aleatório para garantir unicidade e rastreabilidade
+            // O seatId é crucial para o lookup no state.vendas
+            return `TKT-${seatId}-${Date.now().toString(36)}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
+        }
+
+        function generateTransactionId() {
+            return 'TXN' + Date.now() + Math.random().toString(36).substr(2, 9).toUpperCase();
+        }
+
+        function clearSelectionAndForm() {
+            document.querySelectorAll('.seat.selected').forEach(el => el.classList.remove('selected'));
+            state.selectedSeats = [];
+            clearForm();
+            updateSeatInfo();
+        }
+
+        // =============================================
+        // LIBERAR E LIMPAR ASSENTOS - NOVAS FUNÇÕES
+        // =============================================
+
+        function liberarAssentos() {
+            if (state.selectedSeats.length === 0) {
+                showNotification('Atenção', 'Selecione os assentos que deseja liberar.', 'warning');
+                return;
+            }
+
+            const modal = document.createElement('div');
+            modal.className = 'modal show';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Confirmar Liberação</h3>
+                        <button class="close">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Você está prestes a liberar <strong>${state.selectedSeats.length}</strong> assento(s):</p>
+                        <ul>${state.selectedSeats.map(seat => `<li>${seat}</li>`).join('')}</ul>
+                        <p><strong>Atenção:</strong> Esta ação não pode ser desfeita e removerá todas as vendas e reservas associadas.</p>
+                        <div class="action-buttons">
+                            <button class="btn btn-danger" id="confirmLiberar">Confirmar Liberação</button>
+                            <button class="btn btn-secondary" id="cancelLiberar">Cancelar</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            document.getElementById('confirmLiberar').addEventListener('click', function() {
+                let liberados = 0;
+                state.selectedSeats.forEach(seatId => {
+                    if (state.vendas[seatId]) {
+                        delete state.vendas[seatId];
+                        liberados++;
+                    }
+                });
+
+                if (liberados > 0) {
+                    showNotification('Sucesso', `${liberados} assento(s) liberado(s) com sucesso!`, 'success');
+                    saveState();
+                    buildSeatMap(state.currentFloor);
+                    updateDashboard();
+                    updateTransactionList();
+                    updateCharts();
+                } else {
+                    showNotification('Atenção', 'Nenhum dos assentos selecionados estava ocupado.', 'warning');
+                }
+                
+                document.body.removeChild(modal);
+            });
+            
+            document.getElementById('cancelLiberar').addEventListener('click', function() {
+                document.body.removeChild(modal);
+            });
+            
+            modal.querySelector('.close').addEventListener('click', function() {
+                document.body.removeChild(modal);
+            });
+        }
+
+        function limparMapaAssentos() {
+            const modal = document.createElement('div');
+            modal.className = 'modal show';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>⚠️ Confirmar Limpeza do Mapa</h3>
+                        <button class="close">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <p><strong>ATENÇÃO:</strong> Esta ação removerá <strong>TODAS</strong> as vendas e reservas do mapa!</p>
+                        <p>Isso inclui:</p>
+                        <ul>
+                            <li>✅ ${Object.values(state.vendas).filter(v => v.status === 'sold').length} vendas confirmadas</li>
+                            <li>🔖 ${Object.values(state.vendas).filter(v => v.status === 'reserved').length} reservas ativas</li>
+                            <li>💰 R$ ${Object.values(state.vendas).reduce((sum, v) => sum + v.valor, 0).toFixed(2)} em faturamento</li>
+                        </ul>
+                        <p style="color: var(--danger); font-weight: bold;">Esta ação não pode ser desfeita!</p>
+                        <div class="action-buttons">
+                            <button class="btn btn-danger" id="confirmLimpar">Limpar Mapa</button>
+                            <button class="btn btn-secondary" id="cancelLimpar">Cancelar</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            document.getElementById('confirmLimpar').addEventListener('click', function() {
+                state.vendas = {};
+                state.selectedSeats = [];
+                
+                saveState();
+                buildSeatMap(state.currentFloor);
+                updateDashboard();
+                updateTransactionList();
+                updateCharts();
+                
+                showNotification('Sucesso', 'Mapa de assentos limpo com sucesso!', 'success');
+                document.body.removeChild(modal);
+            });
+            
+            document.getElementById('cancelLimpar').addEventListener('click', function() {
+                document.body.removeChild(modal);
+            });
+            
+            modal.querySelector('.close').addEventListener('click', function() {
+                document.body.removeChild(modal);
+            });
+        }
+
+        // =============================================
+        // HISTÓRICO DE TRANSAÇÕES
+        // =============================================
+
+        function updateTransactionList() {
+            const transactionList = document.getElementById('transactionList');
+            transactionList.innerHTML = '';
+
+            const transactions = Object.entries(state.vendas).reverse();
+
+            if (transactions.length === 0) {
+                transactionList.innerHTML = '<p style="text-align: center; color: var(--gray); padding: 40px;">Nenhuma transação registrada ainda.</p>';
+                return;
+            }
+
+            transactions.forEach(([seatId, venda]) => {
+                const transactionItem = document.createElement('div');
+                transactionItem.className = 'transaction-item';
+                
+                transactionItem.innerHTML = `
+                    <div class="transaction-header">
+                        <span class="transaction-id">${venda.transactionId || 'N/A'}</span>
+                        <span class="transaction-status ${venda.status}">${venda.status === 'sold' ? 'Vendido' : 'Reservado'}</span>
+                    </div>
+                    <div class="transaction-details">
+                        <div><strong>Assento:</strong> ${seatId}</div>
+                        <div><strong>Cliente:</strong> ${venda.cliente.nome}</div>
+                        <div><strong>CPF:</strong> ${venda.cliente.cpf}</div>
+                        <div><strong>Valor:</strong> R$ ${venda.valor.toFixed(2)}</div>
+                        <div><strong>Data:</strong> ${new Date(venda.data).toLocaleDateString('pt-BR')}</div>
+                        <div><strong>Horário:</strong> ${new Date(venda.data).toLocaleTimeString('pt-BR')}</div>
+                        ${venda.metodoPagamento ? `<div><strong>Pagamento:</strong> ${venda.metodoPagamento}</div>` : ''}
+                        ${venda.checkedIn ? '<div><strong>Check-in:</strong> ✅ Realizado</div>' : '<div><strong>Check-in:</strong> ❌ Pendente</div>'}
+                    </div>
+                    ${venda.status === 'sold' ? `
+                    <div class="transaction-actions">
+                        <button class="btn btn-primary btn-sm" onclick="imprimirIngressoUnico('${seatId}')">
+                            <i class="fas fa-print"></i> Imprimir
+                        </button>
+                    </div>
+                    ` : ''}
+                `;
+                
+                transactionList.appendChild(transactionItem);
+            });
+
+            // Busca
+            document.getElementById('searchTransaction').addEventListener('input', function(e) {
+                const searchTerm = e.target.value.toLowerCase();
+                document.querySelectorAll('.transaction-item').forEach(item => {
+                    const text = item.textContent.toLowerCase();
+                    item.style.display = text.includes(searchTerm) ? 'block' : 'none';
+                });
+            });
+
+            // Filtros
+            document.querySelectorAll('.filter-buttons button').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const filter = this.dataset.filter;
+                    document.querySelectorAll('.transaction-item').forEach(item => {
+                        if (filter === 'all') {
+                            item.style.display = 'block';
+                        } else if (filter === 'sold') {
+                            item.style.display = item.querySelector('.transaction-status').classList.contains('sold') ? 'block' : 'none';
+                        } else if (filter === 'reserved') {
+                            item.style.display = item.querySelector('.transaction-status').classList.contains('reserved') ? 'block' : 'none';
+                        } else if (filter === 'checkedin') {
+                            const hasCheckin = item.textContent.includes('✅ Realizado');
+                            item.style.display = hasCheckin ? 'block' : 'none';
+                        } else if (filter === 'pending') {
+                            const hasCheckin = item.textContent.includes('✅ Realizado');
+                            item.style.display = !hasCheckin ? 'block' : 'none';
+                        }
+                    });
+                });
+            });
+        }
+
+        // =============================================
+        // SISTEMA DE IMPRESSÃO - CORRIGIDO
+        // =============================================
+
+        function ativarModoPrint() {
+            state.printMode = true;
+            state.selectedSeats = [];
+            document.getElementById('seatMap').classList.add('print-mode');
+            document.getElementById('printModeAlert').style.display = 'flex';
+            document.getElementById('printModeActions').style.display = 'flex';
+            
+            document.getElementById('mode-print').classList.remove('btn-info');
+            document.getElementById('mode-print').classList.add('btn-success');
+            
+            buildSeatMap(state.currentFloor);
+            showNotification('Modo Impressão', 'Modo de impressão ativado! Selecione os assentos vendidos para imprimir.', 'info');
+        }
+
+        function desativarModoPrint() {
+            state.printMode = false;
+            state.selectedSeats = [];
+            document.getElementById('seatMap').classList.remove('print-mode');
+            document.getElementById('printModeAlert').style.display = 'none';
+            document.getElementById('printModeActions').style.display = 'none';
+            
+            document.getElementById('mode-print').classList.remove('btn-success');
+            document.getElementById('mode-print').classList.add('btn-info');
+            
+            buildSeatMap(state.currentFloor);
+            showNotification('Modo Normal', 'Modo de impressão desativado.', 'info');
+        }
+
+        function imprimirSelecionados() {
+            if (state.selectedSeats.length === 0) {
+                showNotification('Atenção', 'Selecione pelo menos um assento vendido para imprimir.', 'warning');
+                return;
+            }
+
+            const soldSeats = state.selectedSeats.filter(seatId => 
+                state.vendas[seatId] && state.vendas[seatId].status === 'sold'
+            );
+
+            if (soldSeats.length === 0) {
+                showNotification('Atenção', 'Apenas assentos vendidos podem ser impressos.', 'warning');
+                return;
+            }
+
+            showNotification('Processando', `Gerando ${soldSeats.length} ingresso(s) para impressora térmica...`, 'info');
+            
+            setTimeout(() => {
+                generateThermalTicketPDF(soldSeats);
+                desativarModoPrint();
+            }, 500);
+        }
+
+        function imprimirIngressoUnico(seatId) {
+            if (!state.vendas[seatId] || state.vendas[seatId].status !== 'sold') {
+                showNotification('Erro', 'Este ingresso não pode ser impresso.', 'error');
+                return;
+            }
+            
+            showNotification('Processando', 'Gerando ingresso para impressora térmica...', 'info');
+            setTimeout(() => {
+                generateThermalTicketPDF([seatId]);
+            }, 500);
+        }
+
+        // =============================================
+        // CONFIGURAÇÕES DE IMPRESSÃO
+        // =============================================
+
+        function loadPrintConfig() {
+            const saved = localStorage.getItem('teatroProPrintConfig');
+            if (saved) {
+                CONFIG.PRINT_CONFIG = JSON.parse(saved);
+                
+                document.getElementById('thermalWidth').value = CONFIG.PRINT_CONFIG.thermalWidth;
+                document.getElementById('fontSize').value = CONFIG.PRINT_CONFIG.fontSize;
+                document.getElementById('printQuality').value = CONFIG.PRINT_CONFIG.printQuality;
+                
+                if (CONFIG.PRINT_CONFIG.logo) {
+                    const logoPreview = document.getElementById('logoPreview');
+                    if (logoPreview) {
+                        logoPreview.innerHTML = `<img src="${CONFIG.PRINT_CONFIG.logo}" alt="Logo" style="max-width: 100%; max-height: 100%;">`;
+                    }
+                }
+            }
+        }
+
+        function savePrintConfig() {
+            CONFIG.PRINT_CONFIG.thermalWidth = parseInt(document.getElementById('thermalWidth').value);
+            CONFIG.PRINT_CONFIG.fontSize = document.getElementById('fontSize').value;
+            CONFIG.PRINT_CONFIG.printQuality = document.getElementById('printQuality').value;
+            
+            localStorage.setItem('teatroProPrintConfig', JSON.stringify(CONFIG.PRINT_CONFIG));
+            
+            showNotification('Sucesso', 'Configurações de impressão salvas!', 'success');
+            updateThermalPreview();
+        }
+
+        function updateThermalPreview() {
+            const preview = document.getElementById('previewContent');
+            if (!preview) return;
+            
+            const width = CONFIG.PRINT_CONFIG.thermalWidth;
+            const fontSize = CONFIG.PRINT_CONFIG.fontSize;
+            
+            let fontSizeClass = 'font-small';
+            if (fontSize === 'medium') fontSizeClass = 'font-medium';
+            if (fontSize === 'large') fontSizeClass = 'font-large';
+            
+            preview.innerHTML = `
+                <div class="${fontSizeClass}" style="text-align: center; width: ${width}mm; margin: 0 auto;">
+                    ${CONFIG.PRINT_CONFIG.logo ? `<img src="${CONFIG.PRINT_CONFIG.logo}" class="ticket-logo" alt="Logo">` : '<div style="font-weight: bold; margin-bottom: 5px;">🎭 TEATROPRO</div>'}
+                    <div style="font-weight: bold; margin-bottom: 5px;">${CONFIG.EVENT_NAME}</div>
+                    <div style="margin-bottom: 3px;">Data: ${CONFIG.EVENT_DATE.split('-').reverse().join('/')}</div>
+                    <div style="margin-bottom: 3px;">Horário: ${CONFIG.EVENT_TIME}</div>
+                    <div style="margin-bottom: 3px;">Assento: A01</div>
+                    <div style="margin-bottom: 3px;">Valor: R$ ${CONFIG.TICKET_PRICE.toFixed(2)}</div>
+                    <div style="margin-top: 5px; border-top: 1px dashed #000; padding-top: 3px;">
+                        Código: TXN123456789
+                    </div>
+                    <div style="margin-top: 5px; text-align: center;">
+                        <div id="qrPreview" style="width: 64px; height: 64px; margin: 0 auto;"></div>
+                    </div>
+                </div>
+            `;
+            
+            if (typeof qrcode !== 'undefined') {
+                try {
+                    const qrPreview = document.getElementById('qrPreview');
+                    if (qrPreview) {
+                        qrPreview.innerHTML = '';
+                        new QRCode(qrPreview, {
+                            text: 'TXN123456789',
+                            width: 64,
+                            height: 64,
+                            colorDark: "#000000",
+                            colorLight: "#ffffff",
+                            correctLevel: QRCode.CorrectLevel.H
+                        });
+                    }
+                } catch (e) {
+                    console.error('Erro ao gerar QR Code na prévia:', e);
+                }
+            }
+        }
+
+        function generateThermalTicketPDF(seatIds) {
+            const { jsPDF } = window.jspdf;
+            
+            const width = CONFIG.PRINT_CONFIG.thermalWidth;
+            const height = Math.min(width * 2, 297);
+            const doc = new jsPDF({
+                orientation: width > height ? 'landscape' : 'portrait',
+                unit: 'mm',
+                format: [width, height]
+            });
+
+            seatIds.forEach((seatId, index) => {
+                if (index > 0) doc.addPage();
+
+                const venda = state.vendas[seatId];
+                if (!venda) return;
+
+                let fontSize = 10;
+                if (CONFIG.PRINT_CONFIG.fontSize === 'small') fontSize = 8;
+                if (CONFIG.PRINT_CONFIG.fontSize === 'large') fontSize = 12;
+                
+                doc.setFontSize(fontSize);
+                doc.setFont(undefined, 'normal');
+
+                let yPos = 10;
+                if (CONFIG.PRINT_CONFIG.logo) {
+                    try {
+                        const imgWidth = 30;
+                        const imgHeight = 15;
+                        doc.addImage(CONFIG.PRINT_CONFIG.logo, 'PNG', (width - imgWidth) / 2, yPos, imgWidth, imgHeight);
+                        yPos += imgHeight + 5;
+                    } catch (e) {
+                        console.error('Erro ao adicionar logo ao PDF:', e);
+                        doc.setFontSize(fontSize + 2);
+                        doc.setFont(undefined, 'bold');
+                        doc.text('🎭 TEATROPRO', width/2, yPos, { align: 'center' });
+                        doc.setFontSize(fontSize);
+                        doc.setFont(undefined, 'normal');
+                        yPos += 8;
+                    }
+                } else {
+                    doc.setFontSize(fontSize + 2);
+                    doc.setFont(undefined, 'bold');
+                    doc.text('🎭 TEATROPRO', width/2, yPos, { align: 'center' });
+                    doc.setFontSize(fontSize);
+                    doc.setFont(undefined, 'normal');
+                    yPos += 8;
+                }
+
+                doc.setDrawColor(0, 0, 0);
+                doc.setLineWidth(0.2);
+                doc.line(5, yPos, width - 5, yPos);
+                yPos += 5;
+
+                doc.setFont(undefined, 'bold');
+                doc.text('EVENTO:', 5, yPos);
+                doc.setFont(undefined, 'normal');
+                doc.text(CONFIG.EVENT_NAME, 25, yPos);
+                yPos += 5;
+
+                doc.setFont(undefined, 'bold');
+                doc.text('DATA:', 5, yPos);
+                doc.setFont(undefined, 'normal');
+                doc.text(CONFIG.EVENT_DATE.split('-').reverse().join('/'), 25, yPos);
+                yPos += 5;
+
+                doc.setFont(undefined, 'bold');
+                doc.text('HORÁRIO:', 5, yPos);
+                doc.setFont(undefined, 'normal');
+                doc.text(CONFIG.EVENT_TIME, 25, yPos);
+                yPos += 5;
+
+                doc.line(5, yPos, width - 5, yPos);
+                yPos += 5;
+
+                doc.setFont(undefined, 'bold');
+                doc.text('ASSENTO:', 5, yPos);
+                doc.setFont(undefined, 'normal');
+                doc.text(seatId, 25, yPos);
+                yPos += 5;
+
+                doc.setFont(undefined, 'bold');
+                doc.text('CLIENTE:', 5, yPos);
+                doc.setFont(undefined, 'normal');
+                doc.text(venda.cliente.nome, 25, yPos);
+                yPos += 5;
+
+                doc.setFont(undefined, 'bold');
+                doc.text('VALOR:', 5, yPos);
+                doc.setFont(undefined, 'normal');
+                doc.text(`R$ ${venda.valor.toFixed(2)}`, 25, yPos);
+                yPos += 5;
+
+                doc.line(5, yPos, width - 5, yPos);
+                yPos += 5;
+
+                doc.setFontSize(fontSize - 2);
+                // Novo campo: Ticket ID (para QR Code)
+	                doc.text('TICKET ID:', 5, yPos);
+	                doc.setFont(undefined, 'bold');
+	                doc.text(venda.ticketId, 30, yPos);
+	                yPos += 4;
+	
+	                // Campo antigo: Transaction ID
+	                doc.setFont(undefined, 'normal');
+	                doc.text('TRANS. ID:', 5, yPos);
+	                doc.setFont(undefined, 'bold');
+	                doc.text(venda.transactionId, 30, yPos);
+	                yPos += 4;
+
+                doc.setFontSize(fontSize - 2);
+	                doc.setFont(undefined, 'normal');
+	                doc.text(`Emitido: ${new Date(venda.data).toLocaleString('pt-BR')}`, width/2, yPos, { align: 'center' });
+	
+	                // Geração do QR Code
+	                const qrCodeDiv = document.createElement('div');
+	                new QRCode(qrCodeDiv, {
+	                    text: venda.ticketId, // Usa o Ticket ID como conteúdo do QR Code
+	                    width: 128,
+	                    height: 128,
+	                    colorDark: "#000000",
+	                    colorLight: "#ffffff",
+	                    correctLevel: QRCode.CorrectLevel.H
+	                });
+	
+	                // Converte o canvas do QR Code para imagem de dados (base64)
+	                const qrCodeImg = qrCodeDiv.querySelector('canvas').toDataURL('image/png');
+	
+	                // Adiciona o QR Code ao PDF
+	                const qrSize = 25; // Tamanho em mm
+	                doc.addImage(qrCodeImg, 'PNG', (width - qrSize) / 2, yPos + 5, qrSize, qrSize);
+	                yPos += qrSize + 10;
+	
+	                // Adiciona uma linha pontilhada para separar ingressos se houver mais
+	                if (index < seatIds.length - 1) {
+	                    doc.setLineDash([1, 1], 0);
+	                    doc.line(5, yPos, width - 5, yPos);
+	                    doc.setLineDash([], 0);
+	                    yPos += 5;
+	                }
+	            });
+
+            doc.save(`ingressos_termica_${new Date().getTime()}.pdf`);
+            showNotification('Sucesso', `${seatIds.length} ingresso(s) gerado(s) para impressora térmica!`, 'success');
+        }
+
+        function testPrint() {
+            const testSeats = ['ground-A01'];
+            if (state.vendas['ground-A01']) {
+                testSeats[0] = Object.keys(state.vendas)[0];
+            } else {
+                state.vendas['ground-A01'] = {
+                    status: 'sold',
+                    cliente: {
+                        nome: 'Cliente Teste',
+                        cpf: '123.456.789-00',
+                        telefone: '(11) 98765-4321',
+                        email: 'teste@exemplo.com'
+                    },
+                    valor: CONFIG.TICKET_PRICE,
+                    data: new Date().toISOString(),
+                    metodoPagamento: 'teste',
+                    transactionId: 'TEST' + Date.now(),
+                    checkedIn: false
+                };
+            }
+            
+            showNotification('Processando', 'Gerando ingresso de teste para impressora térmica...', 'info');
+            setTimeout(() => {
+                generateThermalTicketPDF(testSeats);
+                if (state.vendas['ground-A01'] && state.vendas['ground-A01'].metodoPagamento === 'teste') {
+                    delete state.vendas['ground-A01'];
+                }
+            }, 500);
+        }
+
+        // =============================================
+        // FUNÇÕES UTILITÁRIAS RESTANTES
+        // =============================================
+
+        function setupMasks() {
+            const cpfInput = document.getElementById('clientCPF');
+            const phoneInput = document.getElementById('clientPhone');
+
+            cpfInput.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value.length <= 11) {
+                    value = value.replace(/(\d{3})(\d)/, '$1.$2');
+                    value = value.replace(/(\d{3})(\d)/, '$1.$2');
+                    value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+                    e.target.value = value;
+                }
+            });
+
+            phoneInput.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value.length <= 11) {
+                    value = value.replace(/(\d{2})(\d)/, '($1) $2');
+                    value = value.replace(/(\d{5})(\d)/, '$1-$2');
+                    e.target.value = value;
+                }
+            });
+
+            const logoUpload = document.getElementById('logoUpload');
+            if (logoUpload) {
+                logoUpload.addEventListener('change', function(e) {
+                    if (e.target.files && e.target.files[0]) {
+                        const reader = new FileReader();
+                        reader.onload = function(event) {
+                            CONFIG.PRINT_CONFIG.logo = event.target.result;
+                            
+                            const logoPreview = document.getElementById('logoPreview');
+                            logoPreview.innerHTML = `<img src="${event.target.result}" alt="Logo" style="max-width: 100%; max-height: 100%;">`;
+                            
+                            updateThermalPreview();
+                            
+                            showNotification('Sucesso', 'Logo carregada com sucesso! Salve as configurações para aplicar.', 'success');
+                        };
+                        reader.readAsDataURL(e.target.files[0]);
+                    }
+                });
+            }
+        }
+
+        function showNotification(title, message, type = 'info') {
+            const notification = document.getElementById('notification');
+            const notificationTitle = document.getElementById('notificationTitle');
+            const notificationBody = document.getElementById('notificationBody');
+
+            notification.className = `notification ${type} show`;
+            notificationTitle.textContent = title;
+            notificationBody.textContent = message;
+
+            setTimeout(() => {
+                closeNotification();
+            }, 5000);
+        }
+
+        function closeNotification() {
+            document.getElementById('notification').classList.remove('show');
+        }
+
+        function clearForm() {
+            document.getElementById('clientName').value = '';
+            document.getElementById('clientCPF').value = '';
+            document.getElementById('clientPhone').value = '';
+            document.getElementById('clientEmail').value = '';
+            
+            document.querySelectorAll('.payment-method').forEach(m => m.classList.remove('selected'));
+            state.selectedPayment = null;
+        }
+
+        function setupPaymentMethods() {
+            const paymentMethods = document.querySelectorAll('.payment-method');
+            paymentMethods.forEach(method => {
+                method.addEventListener('click', function() {
+                    paymentMethods.forEach(m => m.classList.remove('selected'));
+                    this.classList.add('selected');
+                    state.selectedPayment = this.dataset.method;
+                });
+            });
+        }
+
+        // =============================================
+        // CONFIGURAÇÃO DE EVENT LISTENERS
+        // =============================================
+
+        function setupEventListeners() {
+            // Menu toggle
+            document.getElementById('menuToggle').addEventListener('click', function() {
+                document.getElementById('sidebar').classList.toggle('active');
+            });
+
+            // Navigation buttons
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const section = this.dataset.section;
+                    if (section) {
+                        switchSection(section);
+                    }
+                });
+            });
+
+            // Floor select
+            document.getElementById('floor-select').addEventListener('change', function() {
+                state.currentFloor = this.value;
+                buildSeatMap(state.currentFloor);
+            });
+
+            // Selection mode buttons
+            document.getElementById('mode-single').addEventListener('click', function() {
+                state.selectionMode = 'single';
+                showNotification('Modo de Seleção', 'Modo de seleção única ativado', 'info');
+            });
+
+            document.getElementById('mode-multiple').addEventListener('click', function() {
+                state.selectionMode = 'multiple';
+                showNotification('Modo de Seleção', 'Modo de seleção múltipla ativado', 'info');
+            });
+
+            document.getElementById('mode-print').addEventListener('click', function() {
+                if (state.printMode) {
+                    desativarModoPrint();
+                } else {
+                    ativarModoPrint();
+                }
+            });
+
+            // Action buttons
+            document.getElementById('btnFinalizarVenda').addEventListener('click', processarVenda);
+            document.getElementById('btnReservar').addEventListener('click', processarReserva);
+            document.getElementById('btnEstornar').addEventListener('click', processarEstornar);
+            document.getElementById('btnLimpar').addEventListener('click', clearSelectionAndForm);
+            document.getElementById('btnLiberarAssentos').addEventListener('click', liberarAssentos);
+            document.getElementById('btnLimparMapa').addEventListener('click', limparMapaAssentos);
+
+            // Modal close buttons
+            document.querySelectorAll('.modal .close').forEach(closeBtn => {
+                closeBtn.addEventListener('click', function() {
+                    this.closest('.modal').classList.remove('show');
+                });
+            });
+
+            // AI Assistant
+            document.getElementById('aiToggle').addEventListener('click', function() {
+                document.getElementById('aiPanel').style.display = 
+                    document.getElementById('aiPanel').style.display === 'flex' ? 'none' : 'flex';
+            });
+
+            document.getElementById('closeAI').addEventListener('click', function() {
+                document.getElementById('aiPanel').style.display = 'none';
+            });
+
+            document.getElementById('sendAI').addEventListener('click', function() {
+                const input = document.getElementById('aiInput');
+                const message = input.value.trim();
+                if (message) {
+                    addAIMessage(message, 'user');
+                    input.value = '';
+                    
+                    // Simulate AI response
+                    setTimeout(() => {
+                        const response = generateAIResponse(message);
+                        addAIMessage(response, 'assistant');
+                    }, 1000);
+                }
+            });
+
+            document.getElementById('aiInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    document.getElementById('sendAI').click();
+                }
+            });
+        }
+
+        // =============================================
+        // AI ASSISTANT FUNCTIONS
+        // =============================================
+
+        function initializeAI() {
+            // AI is initialized in setupEventListeners
+        }
+
+        function addAIMessage(message, sender) {
+            const messagesContainer = document.getElementById('aiMessages');
+            const messageElement = document.createElement('div');
+            messageElement.className = `message ${sender}`;
+            messageElement.textContent = message;
+            messagesContainer.appendChild(messageElement);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function generateAIResponse(userMessage) {
+            const lowerMessage = userMessage.toLowerCase();
+            
+            if (lowerMessage.includes('venda') || lowerMessage.includes('ingresso')) {
+                return "Para vender um ingresso, selecione um assento no mapa, preencha os dados do cliente na seção 'Nova Venda' e escolha um método de pagamento. Depois clique em 'Finalizar Venda'.";
+            } else if (lowerMessage.includes('reserva')) {
+                return "Para reservar um assento, selecione-o no mapa, preencha os dados do cliente e clique em 'Reservar Assento' na seção 'Nova Venda'.";
+            } else if (lowerMessage.includes('imprimir') || lowerMessage.includes('ingresso')) {
+                return "Para imprimir ingressos, você pode usar o 'Modo Impressão' no mapa de assentos ou clicar em 'Imprimir' no histórico de transações para ingressos vendidos.";
+            } else if (lowerMessage.includes('layout') || lowerMessage.includes('assento')) {
+                return "Você pode personalizar o layout do teatro na seção 'Editor de Layout'. Adicione ou remova fileiras e configure o número de assentos em cada uma.";
+            } else if (lowerMessage.includes('backup') || lowerMessage.includes('salvar')) {
+                return "O sistema cria backups automáticos a cada 30 segundos. Você pode gerenciar backups clicando no card 'Backups Ativos' no dashboard ou na opção 'Gerenciar Backups' no menu.";
+            } else if (lowerMessage.includes('check-in')) {
+                return "Para fazer check-in, vá para a seção 'Check-in' e digite o código do ingresso ou escaneie o QR Code. Você também pode ver todos os check-ins realizados na mesma seção.";
+            } else if (lowerMessage.includes('relatório')) {
+                return "Na seção 'Relatórios', você pode visualizar gráficos de ocupação, vendas por dia e métodos de pagamento. Também pode exportar os dados em diferentes formatos.";
+            } else {
+                return "Posso ajudar com vendas, reservas, impressão de ingressos, configuração de layout, backups, check-ins e relatórios. Sobre o que você precisa de ajuda?";
+            }
+        }
+
+        // =============================================
+        // DASHBOARD FUNCTIONS
+        // =============================================
+
+        function updateDashboard() {
+            const stats = calcularEstatisticas();
+            
+            document.getElementById('stat-sales').textContent = stats.vendidos;
+            document.getElementById('stat-available').textContent = stats.disponiveis;
+            document.getElementById('stat-occupied').textContent = stats.ocupados;
+            document.getElementById('stat-revenue').textContent = `R$ ${stats.totalArrecadado.toFixed(2)}`;
+            
+            updateCharts();
+        }
+
+        function calcularEstatisticas() {
+            let totalAssentos = 0;
+            let assentosOcupados = 0;
+            let ingressosVendidos = 0;
+            let totalArrecadado = 0;
+            
+            // Contar assentos totais e ocupados
+            for (const floor in state.layout) {
+                for (const row in state.layout[floor]) {
+                    totalAssentos += state.layout[floor][row];
+                    
+                    for (let i = 1; i <= state.layout[floor][row]; i++) {
+                        const seatId = `${floor}-${row}${i.toString().padStart(2, '0')}`;
+                        if (state.vendas[seatId]) {
+                            assentosOcupados++;
+                            if (state.vendas[seatId].status === 'sold') {
+                                ingressosVendidos++;
+                                totalArrecadado += state.vendas[seatId].valor;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            return {
+                totalAssentos,
+                disponiveis: totalAssentos - assentosOcupados,
+                ocupados: assentosOcupados,
+                vendidos: ingressosVendidos,
+                totalArrecadado
+            };
+        }
+
+        // =============================================
+        // CHART FUNCTIONS
+        // =============================================
+
+        let salesChart, paymentChart, occupancyChart;
+
+        function initCharts() {
+            // Sales Chart
+            const salesCtx = document.getElementById('salesChart').getContext('2d');
+            salesChart = new Chart(salesCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'],
+                    datasets: [{
+                        label: 'Vendas',
+                        data: [12, 19, 3, 5, 2, 3, 7],
+                        backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                        borderColor: 'rgba(99, 102, 241, 1)',
+                        borderWidth: 2,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            // Payment Chart
+            const paymentCtx = document.getElementById('paymentChart').getContext('2d');
+            paymentChart = new Chart(paymentCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Crédito', 'Débito', 'Pix', 'Dinheiro'],
+                    datasets: [{
+                        data: [30, 25, 35, 10],
+                        backgroundColor: [
+                            'rgba(99, 102, 241, 0.8)',
+                            'rgba(34, 197, 94, 0.8)',
+                            'rgba(245, 158, 11, 0.8)',
+                            'rgba(239, 68, 68, 0.8)'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+
+            // Occupancy Chart
+            const occupancyCtx = document.getElementById('occupancyChart');
+            if (occupancyCtx) {
+                occupancyChart = new Chart(occupancyCtx.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['Térreo', 'Mezanino'],
+                        datasets: [{
+                            label: 'Ocupação',
+                            data: [65, 45],
+                            backgroundColor: [
+                                'rgba(99, 102, 241, 0.8)',
+                                'rgba(34, 197, 94, 0.8)'
+                            ],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        function updateCharts() {
+            if (!salesChart || !paymentChart) return;
+            
+            // Update sales chart with real data
+            const salesByDay = {};
+            Object.values(state.vendas).forEach(venda => {
+                if (venda.status === 'sold') {
+                    const date = new Date(venda.data);
+                    const dayName = date.toLocaleDateString('pt-BR', { weekday: 'short' });
+                    salesByDay[dayName] = (salesByDay[dayName] || 0) + 1;
+                }
+            });
+            
+            const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+            const salesData = days.map(day => salesByDay[day] || 0);
+            
+            salesChart.data.datasets[0].data = salesData;
+            salesChart.update();
+            
+            // Update payment chart with real data
+            const paymentMethods = { credito: 0, debito: 0, pix: 0, dinheiro: 0 };
+            Object.values(state.vendas).forEach(venda => {
+                if (venda.status === 'sold' && venda.metodoPagamento) {
+                    paymentMethods[venda.metodoPagamento] = (paymentMethods[venda.metodoPagamento] || 0) + 1;
+                }
+            });
+            
+            paymentChart.data.datasets[0].data = [
+                paymentMethods.credito || 0,
+                paymentMethods.debito || 0,
+                paymentMethods.pix || 0,
+                paymentMethods.dinheiro || 0
+            ];
+            paymentChart.update();
+            
+            // Update occupancy chart
+            if (occupancyChart) {
+                const groundOccupancy = calculateOccupancyByFloor('ground');
+                const mezzOccupancy = calculateOccupancyByFloor('mezz');
+                
+                occupancyChart.data.datasets[0].data = [groundOccupancy, mezzOccupancy];
+                occupancyChart.update();
+            }
+        }
+
+        function calculateOccupancyByFloor(floor) {
+            let totalSeats = 0;
+            let occupiedSeats = 0;
+            
+            for (const row in state.layout[floor]) {
+                totalSeats += state.layout[floor][row];
+                
+                for (let i = 1; i <= state.layout[floor][row]; i++) {
+                    const seatId = `${floor}-${row}${i.toString().padStart(2, '0')}`;
+                    if (state.vendas[seatId]) {
+                        occupiedSeats++;
+                    }
+                }
+            }
+            
+            return totalSeats > 0 ? Math.round((occupiedSeats / totalSeats) * 100) : 0;
+        }
+
+        // =============================================
+        // EDITOR DE LAYOUT FUNCTIONS
+        // =============================================
+
+        function populateEditorLayout() {
+            // Populate ground editor
+            const groundEditor = document.getElementById('groundEditor');
+            groundEditor.innerHTML = '';
+            
+            for (const [row, seats] of Object.entries(state.layout.ground)) {
+                addEditorRowElement('ground', row, seats, groundEditor);
+            }
+            
+            // Populate mezz editor
+            const mezzEditor = document.getElementById('mezzEditor');
+            mezzEditor.innerHTML = '';
+            
+            for (const [row, seats] of Object.entries(state.layout.mezz)) {
+                addEditorRowElement('mezz', row, seats, mezzEditor);
+            }
+            
+            // Setup editor buttons
+            document.getElementById('btnAplicarLayout').addEventListener('click', aplicarLayout);
+            document.getElementById('btnResetLayout').addEventListener('click', resetLayout);
+        }
+
+        function addEditorRowElement(floor, row, seats, container) {
+            const rowElement = document.createElement('div');
+            rowElement.className = 'editor-row';
+            rowElement.innerHTML = `
+                <input type="text" class="row-input label" value="${row}" placeholder="Fileira">
+                <input type="number" class="row-input seats" value="${seats}" min="1" max="30" placeholder="Assentos">
+                <button class="btn btn-danger btn-sm" onclick="removeEditorRow('${floor}', '${row}')">
+                    <i class="fas fa-trash"></i>
+                </button>
+            `;
+            container.appendChild(rowElement);
+        }
+
+        function addEditorRow(floor) {
+            const container = floor === 'ground' ? 
+                document.getElementById('groundEditor') : 
+                document.getElementById('mezzEditor');
+            
+            const newRow = String.fromCharCode(65 + container.children.length); // A, B, C, etc.
+            addEditorRowElement(floor, newRow, 8, container);
+        }
+
+        function removeEditorRow(floor, row) {
+            const container = floor === 'ground' ? 
+                document.getElementById('groundEditor') : 
+                document.getElementById('mezzEditor');
+            
+            const rows = container.querySelectorAll('.editor-row');
+            rows.forEach(r => {
+                const labelInput = r.querySelector('.row-input.label');
+                if (labelInput && labelInput.value === row) {
+                    r.remove();
+                }
+            });
+        }
+
+        function aplicarLayout() {
+            const newLayout = { ground: {}, mezz: {} };
+            
+            // Get ground layout
+            const groundRows = document.querySelectorAll('#groundEditor .editor-row');
+            groundRows.forEach(row => {
+                const label = row.querySelector('.row-input.label').value;
+                const seats = parseInt(row.querySelector('.row-input.seats').value);
+                if (label && seats > 0) {
+                    newLayout.ground[label] = seats;
+                }
+            });
+            
+            // Get mezz layout
+            const mezzRows = document.querySelectorAll('#mezzEditor .editor-row');
+            mezzRows.forEach(row => {
+                const label = row.querySelector('.row-input.label').value;
+                const seats = parseInt(row.querySelector('.row-input.seats').value);
+                if (label && seats > 0) {
+                    newLayout.mezz[label] = seats;
+                }
+            });
+            
+            // Check if layout is valid
+            if (Object.keys(newLayout.ground).length === 0 && Object.keys(newLayout.mezz).length === 0) {
+                showNotification('Erro', 'Adicione pelo menos uma fileira em um dos andares.', 'error');
+                return;
+            }
+            
+            // Apply new layout
+            state.layout = newLayout;
+            saveState();
+            buildSeatMap(state.currentFloor);
+            updateDashboard();
+            closeModal('modalEditor');
+            showNotification('Sucesso', 'Layout aplicado com sucesso!', 'success');
+        }
+
+        function resetLayout() {
+            if (confirm('Tem certeza que deseja restaurar o layout padrão? Todas as personalizações serão perdidas.')) {
+                state.layout = {
+                    ground: { A: 8, B: 8, C: 10, D: 10, E: 12 },
+                    mezz: { AA: 6, BB: 6, CC: 8, DD: 8 }
+                };
+                saveState();
+                populateEditorLayout();
+                buildSeatMap(state.currentFloor);
+                updateDashboard();
+                showNotification('Sucesso', 'Layout padrão restaurado com sucesso!', 'success');
+            }
+        }
+
+        // =============================================
+        // MODAL FUNCTIONS
+        // =============================================
+
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.add('show');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('show');
+        }
+
+        // =============================================
+        // CHECK-IN FUNCTIONS
+        // =============================================
+
+function validateTicket() {
+	            const code = document.getElementById('checkinCode').value.trim();
+	            if (!code) {
+	                showNotification('Erro', 'Digite o código do ingresso (Ticket ID ou Assento).', 'error');
+	                return;
+	            }
+	            
+	            // 1. Encontrar o ingresso pelo Ticket ID (QR Code) ou pelo Assento
+	            let foundTicket = null;
+	            let foundSeatId = null;
+	            
+	            for (const [seatId, venda] of Object.entries(state.vendas)) {
+	                // Verifica se o Ticket ID (QR Code) corresponde
+	                if (venda.ticketId === code) {
+	                    foundTicket = venda;
+	                    foundSeatId = seatId;
+	                    break;
+	                }
+	                // Verifica se o Assento ID corresponde (opcional, para busca manual)
+	                if (seatId === code) {
+	                    foundTicket = venda;
+	                    foundSeatId = seatId;
+	                    break;
+	                }
+	            }
+	            
+	            // 2. Validação de Autenticidade/Existência
+	            if (!foundTicket) {
+	                showNotification('Erro', 'Ingresso não encontrado. QR Code inválido ou não registrado.', 'error');
+	                return;
+	            }
+	            
+	            // 3. Validação de Status
+	            if (foundTicket.status !== 'sold') {
+	                showNotification('Erro', `Ingresso para o assento ${foundSeatId} não está vendido (Status: ${foundTicket.status}).`, 'error');
+	                return;
+	            }
+	            
+	            // 4. Validação de Uso (Controle de Uso)
+	            if (foundTicket.checkedIn) {
+	                showNotification('Aviso', `Ingresso para o assento ${foundSeatId} JÁ FOI UTILIZADO para check-in.`, 'warning');
+	                return;
+	            }
+	            
+	            // 5. Realizar Check-in
+	            foundTicket.checkedIn = true;
+	            state.checkins.push({
+	                seatId: foundSeatId,
+	                ticketId: foundTicket.ticketId, // Adiciona o Ticket ID ao registro de check-in
+	                transactionId: foundTicket.transactionId,
+	                timestamp: new Date().toISOString()
+	            });
+	            
+	            saveState();
+	            updateCheckinList();
+	            updateTransactionList();
+	            updateReports(); // Atualiza estatísticas, se necessário
+	            
+	            showNotification('Sucesso', `Check-in realizado! Assento: ${foundSeatId} | Cliente: ${foundTicket.cliente.nome}`, 'success');
+	            document.getElementById('checkinCode').value = '';
+	        }
+
+        function updateCheckinList() {
+            const checkinList = document.getElementById('checkinList');
+            
+            if (state.checkins.length === 0) {
+                checkinList.innerHTML = '<p style="color: var(--gray); text-align: center;">Nenhum check-in realizado ainda.</p>';
+                return;
+            }
+            
+            let html = '';
+            state.checkins.forEach(checkin => {
+                const venda = state.vendas[checkin.seatId];
+                if (venda) {
+                    html += `
+                        <div class="transaction-item">
+                            <div class="transaction-header">
+                                <span class="transaction-id">${venda.transactionId}</span>
+                                <span class="ticket-id" style="font-size: 0.7rem; color: var(--gray); margin-left: 10px;">${checkin.ticketId || 'N/A'}</span>
+                                <span class="transaction-status sold">Check-in OK</span>
+                            </div>
+                            <div class="transaction-details">
+                                <div><strong>Assento:</strong> ${checkin.seatId}</div>
+                                <div><strong>Cliente:</strong> ${venda.cliente.nome}</div>
+                                <div><strong>Horário:</strong> ${new Date(checkin.timestamp).toLocaleTimeString('pt-BR')}</div>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+            
+            checkinList.innerHTML = html;
+        }
+
+        // =============================================
+        // EXPORT FUNCTIONS
+        // =============================================
+
+        function exportToCSV() {
+	            let csv = 'ID Transação,Ticket ID,Assento,Cliente,CPF,Valor,Data,Método de Pagamento,Status,Check-in\n';
+	            
+	            for (const [seatId, venda] of Object.entries(state.vendas)) {
+	                csv += `${venda.transactionId},${venda.ticketId || 'N/A'},${seatId},"${venda.cliente.nome}",${venda.cliente.cpf},${venda.valor},"${new Date(venda.data).toLocaleString('pt-BR')}","${venda.metodoPagamento || ''}","${venda.status}",${venda.checkedIn ? 'Sim' : 'Não'}\n`;
+	            }
+            
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `teatropro_vendas_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+            
+            showNotification('Sucesso', 'Dados exportados em CSV com sucesso!', 'success');
+        }
+
+        function exportToJSON() {
+            const data = {
+                event: {
+                    name: CONFIG.EVENT_NAME,
+                    date: CONFIG.EVENT_DATE,
+                    time: CONFIG.EVENT_TIME,
+                    location: CONFIG.EVENT_LOCATION
+                },
+	                layout: state.layout,
+	                sales: state.vendas,
+	                checkins: state.checkins,
+                exportDate: new Date().toISOString()
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `teatropro_dados_${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+            
+            showNotification('Sucesso', 'Dados exportados em JSON com sucesso!', 'success');
+        }
+
+        function exportToPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Title
+            doc.setFontSize(20);
+            doc.text('Relatório de Vendas - TeatroPro', 105, 20, { align: 'center' });
+            
+            // Event info
+            doc.setFontSize(14);
+            doc.text(`Evento: ${CONFIG.EVENT_NAME}`, 20, 40);
+            doc.text(`Data: ${CONFIG.EVENT_DATE.split('-').reverse().join('/')}`, 20, 50);
+            doc.text(`Horário: ${CONFIG.EVENT_TIME}`, 20, 60);
+            
+            // Sales summary
+            const stats = calcularEstatisticas();
+            doc.setFontSize(16);
+            doc.text('Resumo de Vendas', 20, 80);
+            doc.setFontSize(12);
+            doc.text(`Ingressos Vendidos: ${stats.vendidos}`, 20, 90);
+            doc.text(`Total Arrecadado: R$ ${stats.totalArrecadado.toFixed(2)}`, 20, 100);
+            doc.text(`Taxa de Ocupação: ${Math.round((stats.ocupados / stats.totalAssentos) * 100)}%`, 20, 110);
+            
+            // Add new page for transaction list
+            doc.addPage();
+            doc.setFontSize(16);
+            doc.text('Lista de Transações', 20, 20);
+            
+            // Table headers
+            doc.setFontSize(12);
+            doc.text('ID', 20, 40);
+            doc.text('Assento', 40, 40);
+            doc.text('Cliente', 70, 40);
+            doc.text('Valor', 130, 40);
+            doc.text('Status', 160, 40);
+            
+            // Table rows
+            let yPosition = 50;
+            for (const [seatId, venda] of Object.entries(state.vendas)) {
+                if (yPosition > 270) {
+                    doc.addPage();
+                    yPosition = 20;
+                    
+                    // Repeat headers on new page
+                    doc.text('ID', 20, yPosition);
+                    doc.text('Assento', 40, yPosition);
+                    doc.text('Cliente', 70, yPosition);
+                    doc.text('Valor', 130, yPosition);
+                    doc.text('Status', 160, yPosition);
+                    yPosition += 10;
+                }
+                
+                doc.text(venda.transactionId.substring(0, 10), 20, yPosition);
+                doc.text(seatId, 40, yPosition);
+                doc.text(venda.cliente.nome.substring(0, 20), 70, yPosition);
+                doc.text(`R$ ${venda.valor.toFixed(2)}`, 130, yPosition);
+                doc.text(venda.status === 'sold' ? 'Vendido' : 'Reservado', 160, yPosition);
+                yPosition += 10;
+            }
+            
+            doc.save(`teatropro_relatorio_${new Date().toISOString().split('T')[0]}.pdf`);
+            showNotification('Sucesso', 'Relatório exportado em PDF com sucesso!', 'success');
+        }
+
+        // =============================================
+        // REPORT FUNCTIONS
+        // =============================================
+
+        function updateReports() {
+            const stats = calcularEstatisticas();
+            
+            // Update occupation rate
+            const occupationRate = stats.totalAssentos > 0 ? 
+                Math.round((stats.ocupados / stats.totalAssentos) * 100) : 0;
+            document.getElementById('stat-occupation-rate').textContent = `${occupationRate}%`;
+            
+            // Update average ticket
+            const avgTicket = stats.vendidos > 0 ? 
+                stats.totalArrecadado / stats.vendidos : 0;
+            document.getElementById('stat-avg-ticket').textContent = `R$ ${avgTicket.toFixed(2)}`;
+            
+            // Update reservations
+            const reservations = Object.values(state.vendas).filter(v => v.status === 'reserved').length;
+            document.getElementById('stat-reservations').textContent = reservations;
+            
+            // Update pending
+            const pending = Object.values(state.vendas).filter(v => v.status === 'sold' && !v.checkedIn).length;
+            document.getElementById('stat-pending').textContent = pending;
+            
+            updateCharts();
+        }
+
+        // =============================================
+        // FUNÇÕES GLOBAIS
+        // =============================================
+
+        window.addEditorRow = addEditorRow;
+        window.removeEditorRow = removeEditorRow;
+        window.aplicarLayout = aplicarLayout;
+        window.closeModal = closeModal;
+        window.openModal = openModal;
+        window.validateTicket = validateTicket;
+        window.saveEventConfig = saveEventConfig;
+        window.savePrintConfig = savePrintConfig;
+        window.exportToCSV = exportToCSV;
+        window.exportToJSON = exportToJSON;
+        window.exportToPDF = exportToPDF;
+        window.closeNotification = closeNotification;
+        window.ativarModoPrint = ativarModoPrint;
+        window.desativarModoPrint = desativarModoPrint;
+        window.imprimirSelecionados = imprimirSelecionados;
+        window.imprimirIngressoUnico = imprimirIngressoUnico;
+        window.liberarAssentos = liberarAssentos;
+        window.limparMapaAssentos = limparMapaAssentos;
+        window.testPrint = testPrint;
+        window.showBackupManager = showBackupManager;
+        window.restoreBackup = restoreBackup;
+    </script>
+</body>
+</html>
