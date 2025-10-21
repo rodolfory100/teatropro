@@ -1,9 +1,11 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
-const db = require('./database'); // <-- ADICIONE ESTA LINHA
+const db = require('./database');
 const app = express();
-const PORT = 3000;
+
+// 🔥 PORTA DINÂMICA PARA RENDER.COM
+const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(express.json());
@@ -121,9 +123,10 @@ app.get('/api/teste', (req, res) => {
 
 
 // 🚀 INICIAR SERVIDOR
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log('🎭 SERVIDOR TEATRO PRO RODANDO!');
     console.log(`✅ ACESSE: http://localhost:${PORT}`);
     console.log('📊 Banco de dados: dados.db');
     console.log('🧪 Teste API: /api/teste');
 });
+

@@ -1,8 +1,9 @@
 {
   "name": "teatropro",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
+    "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -12,5 +13,9 @@
     "express": "^5.1.0",
     "sqlite3": "^5.1.7"
   },
-  "description": ""
+  "description": "",
+  "engines": {
+    "node": ">=14.0.0"
+  }
 }
+
