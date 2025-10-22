@@ -11,6 +11,10 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <!-- Chart.js para gráficos -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    <!-- 🔥 IMPORTANTE: Carrega a API correta, que fala com o Render, antes de qualquer outro script. -->
+    <script src="JS/api-ingressos.js"></script>
+
     <style>
         /* Estilos anteriores mantidos */
         * {
@@ -1813,80 +1817,9 @@
     </div>
 
     <script>
-        // 🔥 API INCLUÍDA DIRETAMENTE NO HTML - TEATROPRO
-        class IngressosAPI {
-            static async carregarDados() {
-                try {
-                    const response = await fetch('/api/ingressos');
-                    if (!response.ok) throw new Error('Erro na rede');
-                    const data = await response.json();
-                    return data;
-                } catch (error) {
-                    console.error('Erro ao carregar ingressos:', error);
-                    return { ingressosVendidos: 0, vendas: [], totalArrecadado: 0 };
-                }
-            }
-
-            static async salvarDados(dados) {
-                try {
-                    const response = await fetch('/api/ingressos', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(dados)
-                    });
-                    return await response.json();
-                } catch (error) {
-                    console.error('Erro ao salvar ingressos:', error);
-                    return { success: false };
-                }
-            }
-
-            static async venderIngresso(dadosVenda) {
-                try {
-                    const dadosAtuais = await this.carregarDados();
-                    
-                    // Adiciona a nova venda
-                    dadosAtuais.vendas.push({
-                        id: Date.now(),
-                        data: new Date().toLocaleString('pt-BR'),
-                        ...dadosVenda
-                    });
-                    
-                    // Atualiza totais
-                    dadosAtuais.ingressosVendidos += dadosVenda.quantidade || 1;
-                    dadosAtuais.totalArrecadado += dadosVenda.valor || 0;
-                    
-                    // Salva
-                    const resultado = await this.salvarDados(dadosAtuais);
-                    return resultado.success;
-                    
-                } catch (error) {
-                    console.error('Erro ao vender ingresso:', error);
-                    return false;
-                }
-            }
-
-            static async getResumo() {
-                const dados = await this.carregarDados();
-                return {
-                    vendidos: dados.ingressosVendidos,
-                    total: dados.totalArrecadado,
-                    vendas: dados.vendas
-                };
-            }
-        }
-
-        // Torna disponível globalmente
-        window.IngressosAPI = IngressosAPI;
-        console.log('✅ API TeatroPro carregada com sucesso!');
-    </script>
-
-    <script>
-        // =============================================
-        // SISTEMA PRINCIPAL - TEATROPRO
-        // =============================================
+        // =================================================================================
+        // SISTEMA PRINCIPAL - TEATROPRO - VERSÃO FINAL E CORRIGIDA
+        // =================================================================================
 
         const CONFIG = {
             TICKET_PRICE: 50.00,
@@ -1924,42 +1857,53 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🎭 Iniciando TeatroPro...');
             initializeSystem();
+        });
+
+        // 🔥 FUNÇÃO PRINCIPAL DE INICIALIZAÇÃO (CORRIGIDA)
+        // Força a sincronização com o servidor ao carregar a página.
+        async function initializeSystem() {
+            console.log('🔄 Sincronizando com o servidor para obter os dados mais recentes...');
+            
+            // 1. Carrega o estado e configurações básicas (defaults)
+            loadState(); 
+            setupEventListeners();
+            setupAutoSave();
+            buildSeatMap(state.currentFloor);
+            setupPaymentMethods();
+            populateEditorLayout();
+            initCharts();
+            loadEventConfigToForm();
+            updateBackupIndicator();
+
+            // 2. 🔥 A MUDANÇA CRUCIAL: Força a sincronização com o servidor ao iniciar
+            // Isso garante que qualquer dispositivo (novo ou antigo) comece com os dados mais recentes.
+            try {
+                await updateDashboard();
+                console.log('✅ Sincronização inicial concluída. Dados do servidor carregados.');
+            } catch (error) {
+                console.error('❌ Falha na sincronização inicial com o servidor. Usando dados locais como fallback.', error);
+                showNotification('Aviso', 'Não foi possível carregar os dados mais recentes. Verifique sua conexão.', 'warning');
+            }
+
+            // 3. Inicializa o resto do sistema
             initializeAI();
             updateCurrentDate();
             switchSection('dashboard');
-            setupMasks();
             loadPrintConfig();
             updateThermalPreview();
-        });
-
-        function initializeSystem() {
-            loadState();
-            setupEventListeners();
-            setupAutoSave(); // ← BACKUP AUTOMÁTICO ADICIONADO
-            buildSeatMap(state.currentFloor);
-            updateDashboard();
-            updateEventInfo();
-            setupPaymentMethods();
-            populateEditorLayout();
-            updateTransactionList();
-            initCharts();
-            updateBackupIndicator(); // ← INDICADOR DE BACKUP
-            loadEventConfigToForm(); // ← CARREGAR CONFIGURAÇÕES SALVAS
         }
 
         // =============================================
-        // SISTEMA DE BACKUP AUTOMÁTICO - CORRIGIDO
+        // SISTEMA DE BACKUP AUTOMÁTICO
         // =============================================
 
         function setupAutoSave() {
-            // Salva automaticamente a cada 30 segundos
             setInterval(() => {
                 saveState();
                 createBackup();
                 console.log('💾 Estado salvo e backup criado automaticamente');
             }, 30000);
 
-            // Também salva quando o usuário sai da página
             window.addEventListener('beforeunload', () => {
                 saveState();
                 createBackup();
@@ -1975,15 +1919,11 @@
                     config: JSON.parse(JSON.stringify(CONFIG)),
                     version: '1.0'
                 };
-
-                // Manter apenas os 5 backups mais recentes
                 const backups = getBackups();
                 backups.unshift(backup);
                 const recentBackups = backups.slice(0, 5);
-
                 localStorage.setItem('teatroProBackups', JSON.stringify(recentBackups));
                 updateBackupIndicator();
-                
             } catch (error) {
                 console.error('❌ Erro ao criar backup:', error);
             }
@@ -2004,13 +1944,11 @@
                 showNotification('Atenção', 'Nenhum backup encontrado para restaurar.', 'warning');
                 return;
             }
-
             const backup = backups[backupIndex];
             if (!backup) {
                 showNotification('Erro', 'Backup selecionado não encontrado.', 'error');
                 return;
             }
-
             const modal = document.createElement('div');
             modal.className = 'modal show';
             modal.innerHTML = `
@@ -2083,7 +2021,6 @@
 
         function showBackupManager() {
             const backups = getBackups();
-            
             const modal = document.createElement('div');
             modal.className = 'modal show';
             modal.innerHTML = `
@@ -2126,7 +2063,6 @@
                                         `).join('')}
                                     </tbody>
                                 </table>
-                            </div>
                             `
                         }
                         
@@ -2200,7 +2136,6 @@
                 indicator.style.background = 'var(--warning)';
             }
             
-            // Atualizar contador no dashboard
             updateBackupStats();
         }
 
@@ -2213,7 +2148,7 @@
         }
 
         // =============================================
-        // SALVAMENTO E CARREGAMENTO - CORRIGIDOS
+        // SALVAMENTO E CARREGAMENTO
         // =============================================
 
         function loadState() {
@@ -2221,13 +2156,10 @@
             if (saved) {
                 try {
                     const parsed = JSON.parse(saved);
-                    
-                    // Carregar state (vendas, layout, etc.)
                     state.layout = parsed.state.layout || state.layout;
                     state.vendas = parsed.state.vendas || {};
                     state.checkins = parsed.state.checkins || [];
                     
-                    // ⭐ IMPORTANTE: Carregar configurações do evento
                     if (parsed.config) {
                         CONFIG.EVENT_NAME = parsed.config.EVENT_NAME || CONFIG.EVENT_NAME;
                         CONFIG.EVENT_DATE = parsed.config.EVENT_DATE || CONFIG.EVENT_DATE;
@@ -2247,10 +2179,9 @@
         function saveState() {
             const dataToSave = {
                 state: state,
-                config: CONFIG,  // ← SALVAR AS CONFIGURAÇÕES TAMBÉM!
+                config: CONFIG,
                 lastSave: new Date().toISOString()
             };
-            
             localStorage.setItem('teatroProState', JSON.stringify(dataToSave));
         }
 
@@ -2262,7 +2193,136 @@
         }
 
         // =============================================
-        // FUNÇÕES DO SISTEMA PRINCIPAIS
+        // 🔥 FUNÇÕES CORRIGIDAS PARA USAR A API DO RENDER
+        // =============================================
+
+        // Atualiza o painel buscando os dados mais recentes do servidor
+        async function updateDashboard() {
+            try {
+                const resumo = await IngressosAPI.getResumo();
+                
+                // Atualiza o estado local com os dados do servidor
+                state.vendas = {};
+                resumo.vendas.forEach(venda => {
+                    state.vendas[venda.seatId] = {
+                        status: 'sold',
+                        cliente: venda.cliente,
+                        valor: venda.valor,
+                        data: new Date(venda.data).toISOString(),
+                        metodoPagamento: venda.metodoPagamento,
+                        transactionId: venda.transactionId,
+                        checkedIn: !!venda.checkedIn
+                    };
+                });
+
+                // Atualiza a interface com os dados atualizados
+                const stats = calcularEstatisticas();
+                document.getElementById('stat-sales').textContent = stats.vendidos;
+                document.getElementById('stat-available').textContent = stats.disponiveis;
+                document.getElementById('stat-occupied').textContent = stats.ocupados;
+                document.getElementById('stat-revenue').textContent = `R$ ${stats.totalArrecadado.toFixed(2)}`;
+                
+                buildSeatMap(state.currentFloor);
+                updateTransactionList();
+                updateCharts();
+                
+            } catch (error) {
+                console.error('Erro ao atualizar dashboard:', error);
+                showNotification('Erro de Conexão', 'Não foi possível carregar os dados do servidor. Verifique sua conexão.', 'error');
+            }
+        }
+
+        // Processa a venda enviando os dados para o servidor
+        async function processarVenda() {
+            if (state.selectedSeats.length === 0) {
+                showNotification('Atenção', 'Por favor, selecione pelo menos um assento para vender.', 'warning');
+                return;
+            }
+            if (!state.selectedPayment) {
+                showNotification('Atenção', 'Por favor, selecione um método de pagamento.', 'warning');
+                return;
+            }
+
+            const clientData = getClientData();
+            if (!validateClientData(clientData)) return;
+
+            const confirmSale = confirm(`Confirmar venda de ${state.selectedSeats.length} assento(s) por R$ ${(CONFIG.TICKET_PRICE * state.selectedSeats.length).toFixed(2)}?`);
+            if (!confirmSale) return;
+
+            showNotification('Processando', 'Finalizando venda com o servidor...', 'info');
+
+            let successCount = 0;
+            for (const seatId of state.selectedSeats) {
+                const dadosVenda = {
+                    assento: seatId,
+                    cliente: clientData,
+                    valor: CONFIG.TICKET_PRICE,
+                    metodoPagamento: state.selectedPayment
+                };
+
+                const sucesso = await IngressosAPI.venderIngresso(dadosVenda);
+                if (sucesso) {
+                    successCount++;
+                } else {
+                    console.error(`Falha ao vender o assento ${seatId}`);
+                }
+            }
+
+            if (successCount > 0) {
+                showNotification('Sucesso', `${successCount} assento(s) vendido(s) com sucesso!`, 'success');
+                clearSelectionAndForm();
+                await updateDashboard();
+                updateTransactionList();
+                updateCharts();
+            } else {
+                showNotification('Erro', 'Falha ao finalizar a venda. Tente novamente.', 'error');
+            }
+        }
+
+        // Processa o estorno enviando a requisição para o servidor
+        async function processarEstornar() {
+            if (state.selectedSeats.length === 0) {
+                showNotification('Atenção', 'Por favor, selecione pelo menos um assento para estornar/cancelar.', 'warning');
+                return;
+            }
+
+            const soldOrReservedSeats = state.selectedSeats.filter(seatId => 
+                state.vendas[seatId] && (state.vendas[seatId].status === 'sold' || state.vendas[seatId].status === 'reserved')
+            );
+
+            if (soldOrReservedSeats.length === 0) {
+                showNotification('Atenção', 'Nenhum dos assentos selecionados está vendido ou reservado.', 'warning');
+                return;
+            }
+
+            const confirmRefund = confirm(`Confirmar estorno/cancelamento de ${soldOrReservedSeats.length} assento(s)?`);
+            if (!confirmRefund) return;
+
+            showNotification('Processando', 'Estornando assentos no servidor...', 'info');
+            let successCount = 0;
+
+            for (const seatId of soldOrReservedSeats) {
+                const sucesso = await IngressosAPI.liberarAssento(seatId);
+                if (sucesso) {
+                    successCount++;
+                } else {
+                    console.error(`Falha ao estornar o assento ${seatId}`);
+                }
+            }
+
+            if (successCount > 0) {
+                showNotification('Sucesso', `${successCount} assento(s) estornado(s) com sucesso!`, 'success');
+                clearSelectionAndForm();
+                await updateDashboard();
+                updateTransactionList();
+                updateCharts();
+            } else {
+                showNotification('Erro', 'Falha ao estornar os assentos. Tente novamente.', 'error');
+            }
+        }
+
+        // =============================================
+        // FUNÇÕES DO SISTEMA PRINCIPAIS (MANTIDAS)
         // =============================================
 
         function updateCurrentDate() {
@@ -2300,22 +2360,18 @@
                 updateThermalPreview();
             }
         }
-
+        
         // =============================================
         // CONFIGURAÇÕES DO EVENTO - CORRIGIDAS
         // =============================================
 
         function saveEventConfig() {
-            // Atualizar CONFIG com os valores dos inputs
             CONFIG.EVENT_NAME = document.getElementById('configEventName').value;
             CONFIG.EVENT_DATE = document.getElementById('configEventDate').value;
             CONFIG.EVENT_TIME = document.getElementById('configEventTime').value;
             CONFIG.TICKET_PRICE = parseFloat(document.getElementById('configEventPrice').value);
 
-            // SALVAR NO LOCALSTORAGE - Esta é a parte importante!
             saveState();
-            
-            // Atualizar a interface
             updateEventInfo();
             updateThermalPreview();
             updateDashboard();
@@ -2388,24 +2444,16 @@
             const isSold = seatElement.classList.contains('sold');
             const isReserved = seatElement.classList.contains('reserved');
 
-            // Adicionar animação de clique
             seatElement.style.transform = 'scale(0.9)';
-            setTimeout(() => {
-                seatElement.style.transform = '';
-            }, 200);
+            setTimeout(() => { seatElement.style.transform = ''; }, 200);
 
-            // Se estiver no modo de impressão
             if (state.printMode) {
                 if (!isSold) {
                     showNotification('Atenção', 'No modo de impressão, apenas assentos vendidos podem ser selecionados.', 'warning');
                     seatElement.classList.add('shake');
-                    setTimeout(() => {
-                        seatElement.classList.remove('shake');
-                    }, 500);
+                    setTimeout(() => { seatElement.classList.remove('shake'); }, 500);
                     return;
                 }
-
-                // Toggle selection
                 const index = state.selectedSeats.indexOf(seatId);
                 if (index > -1) {
                     state.selectedSeats.splice(index, 1);
@@ -2417,13 +2465,11 @@
                 return;
             }
 
-            // Modo normal - não permitir selecionar vendidos ou reservados
             if (isSold || isReserved) {
                 showSeatInfo(seatId);
                 return;
             }
 
-            // Lógica de seleção normal
             if (state.selectionMode === 'single') {
                 document.querySelectorAll('.seat.selected').forEach(el => {
                     el.classList.remove('selected');
@@ -2533,45 +2579,7 @@
             return true;
         }
 
-        function processarVenda() {
-            if (state.selectedSeats.length === 0) {
-                showNotification('Atenção', 'Por favor, selecione pelo menos um assento para vender.', 'warning');
-                return;
-            }
-            if (!state.selectedPayment) {
-                showNotification('Atenção', 'Por favor, selecione um método de pagamento.', 'warning');
-                return;
-            }
-
-            const clientData = getClientData();
-            if (!validateClientData(clientData)) return;
-
-            const confirmSale = confirm(`Confirmar venda de ${state.selectedSeats.length} assento(s) por R$ ${(CONFIG.TICKET_PRICE * state.selectedSeats.length).toFixed(2)}?`);
-            if (!confirmSale) return;
-
-            state.selectedSeats.forEach(seatId => {
-                const transactionId = generateTransactionId();
-                state.vendas[seatId] = {
-                    status: 'sold',
-                    cliente: clientData,
-                    valor: CONFIG.TICKET_PRICE,
-                    data: new Date().toISOString(),
-                    metodoPagamento: state.selectedPayment,
-                    transactionId: transactionId,
-                    ticketId: generateTicketId(seatId),
-                    checkedIn: false
-                };
-            });
-            
-            showNotification('Sucesso', `Venda de ${state.selectedSeats.length} assento(s) finalizada com sucesso!`, 'success');
-            clearSelectionAndForm();
-            saveState();
-            buildSeatMap(state.currentFloor);
-            updateDashboard();
-            updateTransactionList();
-            updateCharts();
-        }
-
+        // NOTA: A reserva ainda é local, pois não há endpoint para isso no backend.
         function processarReserva() {
             if (state.selectedSeats.length === 0) {
                 showNotification('Atenção', 'Por favor, selecione pelo menos um assento para reservar.', 'warning');
@@ -2603,40 +2611,7 @@
             updateTransactionList();
         }
 
-        function processarEstornar() {
-            if (state.selectedSeats.length === 0) {
-                showNotification('Atenção', 'Por favor, selecione pelo menos um assento para estornar/cancelar.', 'warning');
-                return;
-            }
-
-            const soldOrReservedSeats = state.selectedSeats.filter(seatId => 
-                state.vendas[seatId] && (state.vendas[seatId].status === 'sold' || state.vendas[seatId].status === 'reserved')
-            );
-
-            if (soldOrReservedSeats.length === 0) {
-                showNotification('Atenção', 'Nenhum dos assentos selecionados está vendido ou reservado.', 'warning');
-                return;
-            }
-
-            const confirmRefund = confirm(`Confirmar estorno/cancelamento de ${soldOrReservedSeats.length} assento(s)?`);
-            if (!confirmRefund) return;
-
-            soldOrReservedSeats.forEach(seatId => {
-                delete state.vendas[seatId];
-            });
-            
-            showNotification('Sucesso', `${soldOrReservedSeats.length} assento(s) estornado(s)/cancelado(s) com sucesso!`, 'success');
-            clearSelectionAndForm();
-            saveState();
-            buildSeatMap(state.currentFloor);
-            updateDashboard();
-            updateTransactionList();
-            updateCharts();
-        }
-
         function generateTicketId(seatId) {
-            // Combina o seatId com um timestamp e um hash aleatório para garantir unicidade e rastreabilidade
-            // O seatId é crucial para o lookup no state.vendas
             return `TKT-${seatId}-${Date.now().toString(36)}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
         }
 
@@ -2652,7 +2627,7 @@
         }
 
         // =============================================
-        // LIBERAR E LIMPAR ASSENTOS - NOVAS FUNÇÕES
+        // LIBERAR E LIMPAR ASSENTOS - FUNÇÕES CORRIGIDAS
         // =============================================
 
         function liberarAssentos() {
@@ -2715,7 +2690,9 @@
             });
         }
 
-        function limparMapaAssentos() {
+        // 🔥 FUNÇÃO 'LIMPAR MAPA' CORRIGIDA PARA APAGAR NO SERVIDOR
+        // =============================================
+        async function limparMapaAssentos() {
             const modal = document.createElement('div');
             modal.className = 'modal show';
             modal.innerHTML = `
@@ -2725,7 +2702,7 @@
                         <button class="close">&times;</button>
                     </div>
                     <div class="modal-body">
-                        <p><strong>ATENÇÃO:</strong> Esta ação removerá <strong>TODAS</strong> as vendas e reservas do mapa!</p>
+                        <p><strong>ATENÇÃO:</strong> Esta ação removerá <strong>TODAS</strong> as vendas e reservas do mapa no servidor!</p>
                         <p>Isso inclui:</p>
                         <ul>
                             <li>✅ ${Object.values(state.vendas).filter(v => v.status === 'sold').length} vendas confirmadas</li>
@@ -2734,7 +2711,7 @@
                         </ul>
                         <p style="color: var(--danger); font-weight: bold;">Esta ação não pode ser desfeita!</p>
                         <div class="action-buttons">
-                            <button class="btn btn-danger" id="confirmLimpar">Limpar Mapa</button>
+                            <button class="btn btn-danger" id="confirmLimpar">Limpar Mapa no Servidor</button>
                             <button class="btn btn-secondary" id="cancelLimpar">Cancelar</button>
                         </div>
                     </div>
@@ -2743,17 +2720,40 @@
             
             document.body.appendChild(modal);
             
-            document.getElementById('confirmLimpar').addEventListener('click', function() {
-                state.vendas = {};
-                state.selectedSeats = [];
+            document.getElementById('confirmLimpar').addEventListener('click', async function() {
+                showNotification('Processando', 'Limpando todos os assentos no servidor... Isso pode demorar um pouco.', 'info');
                 
-                saveState();
-                buildSeatMap(state.currentFloor);
-                updateDashboard();
-                updateTransactionList();
-                updateCharts();
+                const seatsToDelete = Object.keys(state.vendas);
+                let successCount = 0;
+                let errorCount = 0;
+
+                for (const seatId of seatsToDelete) {
+                    const sucesso = await IngressosAPI.liberarAssento(seatId);
+                    if (sucesso) {
+                        successCount++;
+                    } else {
+                        errorCount++;
+                        console.error(`Falha ao limpar o assento ${seatId} no servidor.`);
+                    }
+                }
+
+                if (successCount > 0) {
+                    showNotification('Sucesso', `${successCount} assento(s) limpo(s) no servidor!`, 'success');
+                    state.vendas = {};
+                    state.selectedSeats = [];
+                    saveState();
+                    
+                    await updateDashboard();
+                    updateTransactionList();
+                    updateCharts();
+                } else {
+                    showNotification('Erro', 'Falha ao limpar os assentos no servidor. Tente novamente.', 'error');
+                }
                 
-                showNotification('Sucesso', 'Mapa de assentos limpo com sucesso!', 'success');
+                if (errorCount > 0) {
+                    showNotification('Aviso', `${errorCount} assento(s) não puderam ser limpos. Verifique o console para mais detalhes.`, 'warning');
+                }
+                
                 document.body.removeChild(modal);
             });
             
@@ -3089,50 +3089,48 @@
                 yPos += 5;
 
                 doc.setFontSize(fontSize - 2);
-                // Novo campo: Ticket ID (para QR Code)
-	                doc.text('TICKET ID:', 5, yPos);
-	                doc.setFont(undefined, 'bold');
-	                doc.text(venda.ticketId, 30, yPos);
-	                yPos += 4;
-	
-	                // Campo antigo: Transaction ID
-	                doc.setFont(undefined, 'normal');
-	                doc.text('TRANS. ID:', 5, yPos);
-	                doc.setFont(undefined, 'bold');
-	                doc.text(venda.transactionId, 30, yPos);
-	                yPos += 4;
+                doc.text('TICKET ID:', 5, yPos);
+                doc.setFont(undefined, 'bold');
+                doc.text(venda.ticketId, 30, yPos);
+                yPos += 4;
+
+                // Campo antigo: Transaction ID
+                doc.setFont(undefined, 'normal');
+                doc.text('TRANS. ID:', 5, yPos);
+                doc.setFont(undefined, 'bold');
+                doc.text(venda.transactionId, 30, yPos);
+                yPos += 4;
 
                 doc.setFontSize(fontSize - 2);
-	                doc.setFont(undefined, 'normal');
-	                doc.text(`Emitido: ${new Date(venda.data).toLocaleString('pt-BR')}`, width/2, yPos, { align: 'center' });
-	
-	                // Geração do QR Code
-	                const qrCodeDiv = document.createElement('div');
-	                new QRCode(qrCodeDiv, {
-	                    text: venda.ticketId, // Usa o Ticket ID como conteúdo do QR Code
-	                    width: 128,
-	                    height: 128,
-	                    colorDark: "#000000",
-	                    colorLight: "#ffffff",
-	                    correctLevel: QRCode.CorrectLevel.H
-	                });
-	
-	                // Converte o canvas do QR Code para imagem de dados (base64)
-	                const qrCodeImg = qrCodeDiv.querySelector('canvas').toDataURL('image/png');
-	
-	                // Adiciona o QR Code ao PDF
-	                const qrSize = 25; // Tamanho em mm
-	                doc.addImage(qrCodeImg, 'PNG', (width - qrSize) / 2, yPos + 5, qrSize, qrSize);
-	                yPos += qrSize + 10;
-	
-	                // Adiciona uma linha pontilhada para separar ingressos se houver mais
-	                if (index < seatIds.length - 1) {
-	                    doc.setLineDash([1, 1], 0);
-	                    doc.line(5, yPos, width - 5, yPos);
-	                    doc.setLineDash([], 0);
-	                    yPos += 5;
-	                }
-	            });
+                doc.setFont(undefined, 'normal');
+                doc.text(`Emitido: ${new Date(venda.data).toLocaleString('pt-BR')}`, width/2, yPos, { align: 'center' });
+
+                // Geração do QR Code
+                const qrCodeDiv = document.createElement('div');
+                new QRCode(qrCodeDiv, {
+                    text: venda.ticketId,
+                    width: 128,
+                    height: 128,
+                    colorDark: "#000000",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+
+                const qrCodeImg = qrCodeDiv.querySelector('canvas').toDataURL('image/png');
+
+                // Adiciona o QR Code ao PDF
+                const qrSize = 25;
+                doc.addImage(qrCodeImg, 'PNG', (width - qrSize) / 2, yPos + 5, qrSize, qrSize);
+                yPos += qrSize + 10;
+
+                // Adiciona uma linha pontilhada para separar ingressos se houver mais
+                if (index < seatIds.length - 1) {
+                    doc.setLineDash([1, 1], 0);
+                    doc.line(5, yPos, width - 5, yPos);
+                    doc.setLineDash([], 0);
+                    yPos += 5;
+                }
+            });
 
             doc.save(`ingressos_termica_${new Date().getTime()}.pdf`);
             showNotification('Sucesso', `${seatIds.length} ingresso(s) gerado(s) para impressora térmica!`, 'success');
@@ -3190,7 +3188,7 @@
                 let value = e.target.value.replace(/\D/g, '');
                 if (value.length <= 11) {
                     value = value.replace(/(\d{2})(\d)/, '($1) $2');
-                    value = value.replace(/(\d{5})(\d)/, '$1-$2');
+                    value = value.replace(/(\d{5})(\d)/, '($1-$2)');
                     e.target.value = value;
                 }
             });
@@ -3332,7 +3330,6 @@
                     addAIMessage(message, 'user');
                     input.value = '';
                     
-                    // Simulate AI response
                     setTimeout(() => {
                         const response = generateAIResponse(message);
                         addAIMessage(response, 'assistant');
@@ -3370,7 +3367,7 @@
             if (lowerMessage.includes('venda') || lowerMessage.includes('ingresso')) {
                 return "Para vender um ingresso, selecione um assento no mapa, preencha os dados do cliente na seção 'Nova Venda' e escolha um método de pagamento. Depois clique em 'Finalizar Venda'.";
             } else if (lowerMessage.includes('reserva')) {
-                return "Para reservar um assento, selecione-o no mapa, preencha os dados do cliente e clique em 'Reservar Assento' na seção 'Nova Venda'.";
+                return "Para reservar um assento, selecione-o no mapa, preencha os dados do cliente na seção 'Nova Venda' e clique em 'Reservar Assento'.";
             } else if (lowerMessage.includes('imprimir') || lowerMessage.includes('ingresso')) {
                 return "Para imprimir ingressos, você pode usar o 'Modo Impressão' no mapa de assentos ou clicar em 'Imprimir' no histórico de transações para ingressos vendidos.";
             } else if (lowerMessage.includes('layout') || lowerMessage.includes('assento')) {
@@ -3390,24 +3387,12 @@
         // DASHBOARD FUNCTIONS
         // =============================================
 
-        function updateDashboard() {
-            const stats = calcularEstatisticas();
-            
-            document.getElementById('stat-sales').textContent = stats.vendidos;
-            document.getElementById('stat-available').textContent = stats.disponiveis;
-            document.getElementById('stat-occupied').textContent = stats.ocupados;
-            document.getElementById('stat-revenue').textContent = `R$ ${stats.totalArrecadado.toFixed(2)}`;
-            
-            updateCharts();
-        }
-
         function calcularEstatisticas() {
             let totalAssentos = 0;
             let assentosOcupados = 0;
             let ingressosVendidos = 0;
             let totalArrecadado = 0;
             
-            // Contar assentos totais e ocupados
             for (const floor in state.layout) {
                 for (const row in state.layout[floor]) {
                     totalAssentos += state.layout[floor][row];
@@ -3446,10 +3431,10 @@
             salesChart = new Chart(salesCtx, {
                 type: 'line',
                 data: {
-                    labels: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'],
+                    labels: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom', 'Dom'],
                     datasets: [{
                         label: 'Vendas',
-                        data: [12, 19, 3, 5, 2, 3, 7],
+                        data: [12, 19, 3, 5, 2, 2, 3, 7],
                         backgroundColor: 'rgba(99, 102, 241, 0.2)',
                         borderColor: 'rgba(99, 102, 241, 1)',
                         borderWidth: 2,
@@ -3534,7 +3519,7 @@
                 }
             });
             
-            const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+            const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
             const salesData = days.map(day => salesByDay[day] || 0);
             
             salesChart.data.datasets[0].data = salesData;
@@ -3667,12 +3652,11 @@
                 if (label && seats > 0) {
                     newLayout.mezz[label] = seats;
                 }
-            });
+            }
             
             // Check if layout is valid
             if (Object.keys(newLayout.ground).length === 0 && Object.keys(newLayout.mezz).length === 0) {
-                showNotification('Erro', 'Adicione pelo menos uma fileira em um dos andares.', 'error');
-                return;
+                showNotification('Erro', 'Adicione pelo menos uma fileira em um dos andares.
             }
             
             // Apply new layout
@@ -3685,7 +3669,7 @@
         }
 
         function resetLayout() {
-            if (confirm('Tem certeza que deseja restaurar o layout padrão? Todas as personalizações serão perdidas.')) {
+            if (confirm('Tem certeza que deseja restaurar o layout padrão? Todas as personalizações serão perdidas.') {
                 state.layout = {
                     ground: { A: 8, B: 8, C: 10, D: 10, E: 12 },
                     mezz: { AA: 6, BB: 6, CC: 8, DD: 8 }
@@ -3714,67 +3698,66 @@
         // CHECK-IN FUNCTIONS
         // =============================================
 
-function validateTicket() {
-	            const code = document.getElementById('checkinCode').value.trim();
-	            if (!code) {
-	                showNotification('Erro', 'Digite o código do ingresso (Ticket ID ou Assento).', 'error');
-	                return;
-	            }
-	            
-	            // 1. Encontrar o ingresso pelo Ticket ID (QR Code) ou pelo Assento
-	            let foundTicket = null;
-	            let foundSeatId = null;
-	            
-	            for (const [seatId, venda] of Object.entries(state.vendas)) {
-	                // Verifica se o Ticket ID (QR Code) corresponde
-	                if (venda.ticketId === code) {
-	                    foundTicket = venda;
-	                    foundSeatId = seatId;
-	                    break;
-	                }
-	                // Verifica se o Assento ID corresponde (opcional, para busca manual)
-	                if (seatId === code) {
-	                    foundTicket = venda;
-	                    foundSeatId = seatId;
-	                    break;
-	                }
-	            }
-	            
-	            // 2. Validação de Autenticidade/Existência
-	            if (!foundTicket) {
-	                showNotification('Erro', 'Ingresso não encontrado. QR Code inválido ou não registrado.', 'error');
-	                return;
-	            }
-	            
-	            // 3. Validação de Status
-	            if (foundTicket.status !== 'sold') {
-	                showNotification('Erro', `Ingresso para o assento ${foundSeatId} não está vendido (Status: ${foundTicket.status}).`, 'error');
-	                return;
-	            }
-	            
-	            // 4. Validação de Uso (Controle de Uso)
-	            if (foundTicket.checkedIn) {
-	                showNotification('Aviso', `Ingresso para o assento ${foundSeatId} JÁ FOI UTILIZADO para check-in.`, 'warning');
-	                return;
-	            }
-	            
-	            // 5. Realizar Check-in
-	            foundTicket.checkedIn = true;
-	            state.checkins.push({
-	                seatId: foundSeatId,
-	                ticketId: foundTicket.ticketId, // Adiciona o Ticket ID ao registro de check-in
-	                transactionId: foundTicket.transactionId,
-	                timestamp: new Date().toISOString()
-	            });
-	            
-	            saveState();
-	            updateCheckinList();
-	            updateTransactionList();
-	            updateReports(); // Atualiza estatísticas, se necessário
-	            
-	            showNotification('Sucesso', `Check-in realizado! Assento: ${foundSeatId} | Cliente: ${foundTicket.cliente.nome}`, 'success');
-	            document.getElementById('checkinCode').value = '';
-	        }
+        function validateTicket() {
+            const code = document.getElementById('checkinCode').value.trim();
+            if (!code) {
+                showNotification('Erro', 'Digite o código do ingresso (Ticket ID ou Assento).', 'error');
+                return;
+            }
+            
+            // 1. Encontrar o ingresso pelo Ticket ID (QR Code) ou pelo Assento
+            let foundTicket = null;
+            let foundSeatId = null;
+            
+            for (const [seatId, venda] of Object.entries(state.vendas)) {
+                if (venda.ticketId === code) {
+                    foundTicket = venda;
+                    foundSeatId = seatId;
+                    break;
+                }
+                // Verifica se o Assento ID corresponde (opcional, para busca manual)
+                if (seatId === code) {
+                    foundTicket = venda;
+                    foundSeatId = seatId;
+                    break;
+                }
+            }
+            
+            // 2. Validação de Autenticidade/Existência
+            if (!foundTicket) {
+                showNotification('Erro', 'Ingresso não encontrado. QR Code inválido ou não registrado.', 'error');
+                return;
+            }
+            
+            // 3. Validação de Status
+            if (foundTicket.status !== 'sold') {
+                showNotification('Erro', `Ingresso para o assento ${foundSeatId} não está vendido (Status: ${foundTicket.status}).`, 'error');
+                return;
+            }
+            
+            // 4. Validação de Uso (Controle de Uso)
+            if (foundTicket.checkedIn) {
+                showNotification('Aviso', `Ingresso para o assento ${foundSeatId} JÁ FOI UTILIZADO para check-in.`, 'warning');
+                return;
+            }
+            
+            // 5. Realizar Check-in
+            foundTicket.checkedIn = true;
+            state.checkins.push({
+                seatId: foundSeatId,
+                ticketId: foundTicket.ticketId,
+                transactionId: foundTicket.transactionId,
+                timestamp: new Date().toISOString()
+            });
+            
+            saveState();
+            updateCheckinList();
+            updateTransactionList();
+            updateReports();
+            
+            showNotification('Sucesso', `Check-in realizado! Assento: ${foundSeatId} | Cliente: ${foundTicket.cliente.nome}`, 'success');
+            document.getElementById('checkinCode').value = '';
+        }
 
         function updateCheckinList() {
             const checkinList = document.getElementById('checkinList');
@@ -3800,8 +3783,7 @@ function validateTicket() {
                                 <div><strong>Cliente:</strong> ${venda.cliente.nome}</div>
                                 <div><strong>Horário:</strong> ${new Date(checkin.timestamp).toLocaleTimeString('pt-BR')}</div>
                             </div>
-                        </div>
-                    `;
+                        `;
                 }
             });
             
@@ -3813,11 +3795,11 @@ function validateTicket() {
         // =============================================
 
         function exportToCSV() {
-	            let csv = 'ID Transação,Ticket ID,Assento,Cliente,CPF,Valor,Data,Método de Pagamento,Status,Check-in\n';
-	            
-	            for (const [seatId, venda] of Object.entries(state.vendas)) {
-	                csv += `${venda.transactionId},${venda.ticketId || 'N/A'},${seatId},"${venda.cliente.nome}",${venda.cliente.cpf},${venda.valor},"${new Date(venda.data).toLocaleString('pt-BR')}","${venda.metodoPagamento || ''}","${venda.status}",${venda.checkedIn ? 'Sim' : 'Não'}\n`;
-	            }
+            let csv = 'ID Transação,Ticket ID,Assento,Cliente,CPF,Valor,Data,Método de Pagamento,Status,Check-in\n';
+            
+            for (const [seatId, venda] of Object.entries(state.vendas)) {
+                csv += `${venda.transactionId},${venda.ticketId || 'N/A'},${seatId},"${venda.cliente.nome}",${venda.cliente.cpf},${venda.valor},"${new Date(venda.data).toLocaleString('pt-BR')}","${venda.metodoPagamento || ''}","${venda.status}",${venda.checkedIn ? 'Sim' : 'Não'}\n`;
+            }
             
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
@@ -3836,9 +3818,9 @@ function validateTicket() {
                     time: CONFIG.EVENT_TIME,
                     location: CONFIG.EVENT_LOCATION
                 },
-	                layout: state.layout,
-	                sales: state.vendas,
-	                checkins: state.checkins,
+                layout: state.layout,
+                sales: state.vendas,
+                checkins: state.checkins,
                 exportDate: new Date().toISOString()
             };
             
